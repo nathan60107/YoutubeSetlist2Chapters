@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Background -->
+  <rect width="128" height="128" rx="20" fill="#1c1c1c"/>
+
+  <!-- Beamed eighth notes -->
+  <ellipse cx="34" cy="66" rx="14" ry="10" transform="rotate(-25 34 66)" fill="white"/>
+  <line x1="46" y1="63" x2="46" y2="26" stroke="white" stroke-width="5" stroke-linecap="round"/>
+
+  <ellipse cx="76" cy="58" rx="14" ry="10" transform="rotate(-25 76 58)" fill="white"/>
+  <line x1="88" y1="55" x2="88" y2="21" stroke="white" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- Beam -->
+  <polygon points="44,22 90,18 90,25 44,29" fill="white"/>
+
+  <!-- YouTube-style progress bar -->
+  <rect x="12" y="100" width="104" height="7" rx="3.5" fill="#3a3a3a"/>
+  <rect x="12" y="100" width="65" height="7" rx="3.5" fill="#ff0000"/>
+  <circle cx="77" cy="103.5" r="7" fill="#ff0000"/>
+
+  <!-- Chapter tick marks -->
+  <rect x="30" y="94" width="4" height="19" rx="2" fill="white"/>
+  <rect x="56" y="94" width="4" height="19" rx="2" fill="white"/>
+  <rect x="90" y="94" width="4" height="19" rx="2" fill="white"/>
+</svg>
