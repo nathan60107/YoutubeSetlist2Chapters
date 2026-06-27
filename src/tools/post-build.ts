@@ -22,7 +22,7 @@ const suffix = getCliArg<CliArg<"config-suffix">>("suffix", "");
 //#MARKER settings:
 
 /** Path to the GitHub repo in the format "User/Repo" */
-const repo = "#REPLACE:User/Repo";
+const repo = "nathan60107/YoutubeSetlist2Chapters";
 /** Name of the emitted userscript file */
 const userscriptDistFile = `${pkg.userscriptName}${suffix}.user.js`;
 
@@ -30,9 +30,9 @@ const userscriptDistFile = `${pkg.userscriptName}${suffix}.user.js`;
 const scriptUrl = (() => {
   switch(host) {
   case "greasyfork":
-    return "https://update.greasyfork.org/scripts/#REPLACE:script_id/#REPLACE:filename.user.js";
+    return "https://update.greasyfork.org/scripts/YOUR_SCRIPT_ID/YouTubeSetlist2Chapters.user.js";
   case "openuserjs":
-    return `https://openuserjs.org/install/#REPLACE:username/${pkg.userscriptName}`;
+    return `https://openuserjs.org/install/nathan60107/${pkg.userscriptName}`;
   case "github":
   default:
     return `https://raw.githubusercontent.com/${repo}/${branch}/dist/${userscriptDistFile}`;
@@ -93,7 +93,7 @@ const ringBell = Boolean(env.RING_BELL && (env.RING_BELL.length > 0 && env.RING_
 
   const header = `\
 // ==UserScript==
-// @name              ${pkg.userscriptName}
+// @name              YouTube Setlist to Chapters
 // @namespace         ${pkg.homepage}
 // @version           ${pkg.version}
 // @description       ${pkg.description}
@@ -102,12 +102,13 @@ const ringBell = Boolean(env.RING_BELL && (env.RING_BELL.length > 0 && env.RING_
 // @license           ${pkg.license}
 // @author            ${pkg.author.name}
 // @copyright         ${pkg.author.name} (${pkg.author.url})
-// @icon              ${getResourceUrl("images/logo_48.png", buildNbr)}
-// @match             #REPLACE:Match URL(s) - i.e. *://*.example.com/*
+// @icon              ${getResourceUrl("icon.png", buildNbr)}
+// @match             *://www.youtube.com/watch*
+// @match             *://youtube.com/watch*
 // @run-at            document-start
 // @downloadURL       ${scriptUrl}
 // @updateURL         ${scriptUrl}
-// @connect           github.com
+// @connect           www.youtube.com
 // @connect           raw.githubusercontent.com
 // @grant             GM.getValue
 // @grant             GM.setValue

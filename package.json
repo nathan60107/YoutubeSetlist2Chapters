@@ -1,8 +1,8 @@
 {
-  "name": "#REPLACE:packagename",
-  "userscriptName": "#REPLACE:Userscript Name",
-  "version": "1.0.0",
-  "description": "#REPLACE:Userscript Description",
+  "name": "youtube-setlist-2-chapters",
+  "userscriptName": "YouTubeSetlist2Chapters",
+  "version": "0.1.0",
+  "description": "Converts YouTube comment setlists to built-in chapter navigation",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -24,17 +24,17 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/#REPLACE:User/Repo.git"
+    "url": "git+https://github.com/nathan60107/YoutubeSetlist2Chapters.git"
   },
   "author": {
-    "name": "#REPLACE:Author name",
-    "url": "#REPLACE:Author URL"
+    "name": "nathan60107",
+    "url": "https://github.com/nathan60107"
   },
-  "license": "WTFPL",
+  "license": "MIT",
   "bugs": {
-    "url": "https://github.com/#REPLACE:User/Repo/issues"
+    "url": "https://github.com/nathan60107/YoutubeSetlist2Chapters/issues"
   },
-  "homepage": "https://github.com/#REPLACE:User/Repo#readme",
+  "homepage": "https://github.com/nathan60107/YoutubeSetlist2Chapters",
   "devDependencies": {
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^15.2.3",
@@ -59,7 +59,8 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "@sv443-network/userutils": "^6.3.0"
+    "@sv443-network/userutils": "^6.3.0",
+    "youtubei.js": "^13.0.0"
   },
   "nodemonConfig": {
     "watch": [
