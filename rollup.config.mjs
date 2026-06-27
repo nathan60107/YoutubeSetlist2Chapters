@@ -44,6 +44,7 @@ export default (/**@type {import("./src/types").RollupArgs}*/ args) => (async ()
     plugins: [
       pluginNodeResolve({
         extensions: [".ts", ".mts", ".json"],
+        browser: true,
       }),
       pluginTypeScript({
         typescript,
@@ -70,8 +71,10 @@ export default (/**@type {import("./src/types").RollupArgs}*/ args) => (async ()
       ) : globalPkgs,
     },
     onwarn(warning) {
-      // ignore circular dependency warnings
-      if(warning.code !== "CIRCULAR_DEPENDENCY") {
+      // CIRCULAR_DEPENDENCY: expected in large bundled libs
+      // THIS_IS_UNDEFINED: TS __asyncGenerator helper pattern - safe when bundled to IIFE
+      const ignored = ["CIRCULAR_DEPENDENCY", "THIS_IS_UNDEFINED"];
+      if(!ignored.includes(warning.code ?? "")) {
         const { message, ...rest } = warning;
         console.error(`\x1b[33m(!)\x1b[0m ${message}\n`, rest);
       }

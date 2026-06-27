@@ -12,8 +12,8 @@
 // @match             *://www.youtube.com/watch*
 // @match             *://youtube.com/watch*
 // @run-at            document-start
-// @downloadURL       https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/dist/YouTubeSetlist2Chapters.user.js
-// @updateURL         https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/dist/YouTubeSetlist2Chapters.user.js
+// @downloadURL       https://update.greasyfork.org/scripts/YOUR_SCRIPT_ID/YouTubeSetlist2Chapters.user.js
+// @updateURL         https://update.greasyfork.org/scripts/YOUR_SCRIPT_ID/YouTubeSetlist2Chapters.user.js
 // @connect           www.youtube.com
 // @connect           raw.githubusercontent.com
 // @grant             GM.getValue

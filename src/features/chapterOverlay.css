@@ -1,0 +1,52 @@
+/* ── YouTube progress bar override ───────────────────────────────────────── */
+
+/* YouTube sets overflow:hidden on the bar, which clips our absolutely-
+   positioned children. Force visible so segments are not clipped. */
+.ytp-progress-bar {
+  overflow: visible !important;
+}
+
+/* ── Chapter segment bars ────────────────────────────────────────────────── */
+
+.ys2c-chapter-segments {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  /* Above ytp-play-progress / ytp-load-progress / ytp-scrubber-container */
+  z-index: 42;
+}
+
+.ys2c-chapter-segment {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: rgba(100, 181, 246, 0.55);
+  border-right: 1.5px solid rgba(100, 181, 246, 0.8);
+  box-sizing: border-box;
+}
+
+/* ── Hover tooltip ───────────────────────────────────────────────────────── */
+
+.ys2c-chapter-tooltip {
+  position: fixed;
+  display: none;
+  /* Center horizontally on cursor, sit just above the progress bar */
+  transform: translate(-50%, calc(-100% - 6px));
+  background: rgba(28, 28, 28, 0.9);
+  color: #fff;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-family: "YouTube Noto", Roboto, Arial, sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 9999;
+  user-select: none;
+}
+
+.ys2c-chapter-tooltip--visible {
+  display: block;
+}

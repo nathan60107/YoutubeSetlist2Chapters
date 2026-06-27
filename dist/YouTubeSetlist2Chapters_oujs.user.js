@@ -12,8 +12,8 @@
 // @match             *://www.youtube.com/watch*
 // @match             *://youtube.com/watch*
 // @run-at            document-start
-// @downloadURL       https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/dist/YouTubeSetlist2Chapters.user.js
-// @updateURL         https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/dist/YouTubeSetlist2Chapters.user.js
+// @downloadURL       https://openuserjs.org/install/nathan60107/YouTubeSetlist2Chapters
+// @updateURL         https://openuserjs.org/install/nathan60107/YouTubeSetlist2Chapters
 // @connect           www.youtube.com
 // @connect           raw.githubusercontent.com
 // @grant             GM.getValue

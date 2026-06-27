@@ -2,7 +2,7 @@
   "name": "youtube-setlist-2-chapters",
   "userscriptName": "YouTubeSetlist2Chapters",
   "version": "0.1.0",
-  "description": "Converts YouTube comment setlists to built-in chapter navigation",
+  "description": "Converts YouTube comment setlists into chapter markers on the YouTube player progress bar",
   "main": "index.js",
   "type": "module",
   "scripts": {
