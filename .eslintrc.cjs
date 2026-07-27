@@ -9,7 +9,8 @@ module.exports = {
     "*.user.js",
     "*.map",
     "dist/**",
-    "test.ts",
+    "test/data/**",
+    "test/_page-data.js",
   ],
   extends: [
     "eslint:recommended",

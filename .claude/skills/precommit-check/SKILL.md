@@ -1,0 +1,84 @@
+---
+name: precommit-check
+description: Pre-commit checklist for this userscript repo. Use right before creating a commit, or when the user says "commit 前檢查", "pre-commit check", "收尾檢查", or asks to prepare/verify/tidy a commit. Verifies five things scoped to the change being committed — no leftover/dead code, complete i18n translations across all 10 locales, README roadmap items the change now completes, whether the change warrants a version bump (package.json + lockfile via npm install), and changelog entries for new user-facing features.
+---
+
+# Pre-commit check
+
+Run this before committing to catch the mistakes this repo is prone to. Scope everything to the change **about to be committed** — do not audit the whole tree.
+
+Reply to the user in Traditional Chinese (project convention).
+
+## 0. Scope the change
+
+- Run `git status` and `git diff` (plus `git diff --staged` if anything is staged) to see exactly what this commit touches.
+- List the symbols the diff adds / renames / removes: functions, consts, exported members, **type fields**, and translation keys. You verify each of these below.
+
+## 1. Leftover / dead code
+
+`npm run lint` (= `tsc --noEmit && eslint .`) is necessary but **not sufficient** here:
+
+- `tsconfig.json` has `strict` but **no** `noUnusedLocals` / `noUnusedParameters` — unused locals do **not** fail `tsc`.
+- `@typescript-eslint/no-unused-vars` is a **warning**, so `eslint` still exits 0 with unused imports/vars. **Read the eslint output**, don't just trust the exit code.
+
+Then, for the diff specifically:
+
+- For each symbol the diff adds, grep the repo to confirm it has a real consumer. A **type field that is only ever written, never read, is dead** — remove it.
+- An `export` whose value is only used inside its own file should usually drop the `export` (unless it's the documented return/param type of an exported function).
+- If the change replaced one approach with another, confirm the old approach left **nothing** behind: deleted modules fully gone, reverted build directives restored (e.g. `@noframes` in `src/tools/post-build.ts`), no orphaned imports, no stale rationale comments, and no debug `log(...)` or commented-out logging.
+- Watch for import cycles when shared code was moved into a new module.
+
+## 2. i18n translations complete
+
+Reference locale: `src/locales/en.ts` (its keys define `TranslationKey`). All **10** locales must supply every key: `en`, `zh-TW`, `zh-CN`, `ja`, `ko`, `es`, `fr`, `de`, `pt-BR`, `ru`.
+
+- A **missing** key fails `tsc` (via `Translations = Record<TranslationKey, string>`) — lint covers that.
+- `tsc` does **not** catch a value left in English. For every key this commit adds or changes in `en.ts`, open each of the other 9 locale files and confirm the value is genuinely translated, not an English placeholder. Flag any that still read as English.
+- Values with inline HTML (`<code>…</code>`), positional `%1`/`%2`, or `{{title}}`/`{{url}}`/`{{transcript}}` tokens must keep those verbatim in every locale.
+
+## 3. README roadmap
+
+Two files, kept in sync: `README.md` (`## Roadmap`) and `README.zh-TW.md` (`## 開發藍圖`).
+
+- If this commit finishes a roadmap item, move it out of the roadmap: into Features (`## Features` / `## 功能特色`) if it's a user-facing capability, or delete it if it was just a fix.
+- Apply the edit to **both** language files with matching wording.
+
+## 4. Version bump
+
+Decide from the diff whether this change needs a new version at all:
+
+| Change | Bump |
+|---|---|
+| New user-facing capability | **minor** — `0.8.1` → `0.9.0` |
+| User-facing fix or behaviour tweak only | **patch** — `0.8.1` → `0.8.2` |
+| Internal refactor, comments, tests, docs | **none** |
+
+Then work out whether the current version is still open or already spent:
+
+- Run `git show HEAD:changelog.md | head -1`. If that heading already equals `package.json`'s `"version"`, the version is **already committed** — new user-facing work needs a **fresh** bump, not extra bullets under the released heading.
+- If the changelog has **no** heading for the current `package.json` version yet, that version is still in progress: put this work under it and **don't** bump again.
+
+To bump (only when the table above says so):
+
+1. Edit `"version"` in `package.json`.
+2. Run `npm install` to sync `package-lock.json` (it carries the version in **two** places — the root object and `packages[""]`). Never hand-edit the lockfile.
+3. Add the matching `# X.Y.Z` section to `changelog.md` (§5).
+
+The userscript's `@version` header is generated from `package.json` at build time, so a bump leaves `dist/` carrying the **old** version until the next build.
+
+**You never build and never touch `dist/` yourself.** When a bump makes `dist/` stale, stop and tell the user a build is needed — then wait. They run the build and come back to ask for the commit. Do not offer to build it, and do not commit a bumped `package.json` alongside a `dist/` still stamped with the previous version.
+
+## 5. Changelog
+
+`changelog.md`: newest version first, `# X.Y.Z` heading, concise **user-facing** bullets (state the change; note the problem it solves when useful — match the tone of existing entries).
+
+- If this commit adds a user-facing feature or fix, make sure it's listed under the version §4 settled on.
+- Internal-only refactors/cleanups don't need an entry.
+
+## Report
+
+Summarize as a checklist — ✅ / ⚠️ per section — with `file:line` for each issue found. Offer to fix the ⚠️ items.
+
+- Do **not** run a build (`npm run build*`) and do **not** edit `dist/` — the user owns that step.
+- If §4 bumped the version, end the report by telling the user a build is needed before committing, and stop there.
+- Do **not** create the commit unless the user asks.

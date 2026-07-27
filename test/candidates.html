@@ -1,0 +1,879 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>歌枠 Setlist 測試資料集</title>
+
+<style>
+  :root {
+    color-scheme: light;
+    --ground: #f4f6f7;
+    --surface: #ffffff;
+    --surface-sunken: #eceff1;
+    --line: #d8dee1;
+    --line-soft: #e7ebed;
+    --ink: #171d20;
+    --ink-muted: #5c686d;
+    --ink-faint: #89969c;
+    --accent: #1f7a8c;
+    --accent-soft: #e2eff2;
+    --ok: #2e8b62;
+    --ok-soft: #e0f0e8;
+    --warn: #a8790a;
+    --warn-soft: #f6eed6;
+    --bad: #c0453e;
+    --bad-soft: #f8e4e2;
+    --none: #7b878c;
+    --none-soft: #e9edee;
+
+    --step--1: 0.78rem;
+    --step-0: 0.9375rem;
+    --step-2: 1.5rem;
+    --step-3: 2.125rem;
+
+    --sans: "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Noto Sans JP",
+      "Microsoft JhengHei UI", "PingFang TC", system-ui, sans-serif;
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Consolas", monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --ground: #13171a;
+      --surface: #1a2024;
+      --surface-sunken: #12171a;
+      --line: #2c3439;
+      --line-soft: #232b30;
+      --ink: #e4eaec;
+      --ink-muted: #9aa7ad;
+      --ink-faint: #6d7a80;
+      --accent: #57b3c6;
+      --accent-soft: #17313a;
+      --ok: #56b98c;
+      --ok-soft: #14312a;
+      --warn: #d3a53a;
+      --warn-soft: #322a15;
+      --bad: #e0706a;
+      --bad-soft: #38201f;
+      --none: #7f8c92;
+      --none-soft: #232b2f;
+    }
+  }
+
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --ground: #f4f6f7;
+    --surface: #ffffff;
+    --surface-sunken: #eceff1;
+    --line: #d8dee1;
+    --line-soft: #e7ebed;
+    --ink: #171d20;
+    --ink-muted: #5c686d;
+    --ink-faint: #89969c;
+    --accent: #1f7a8c;
+    --accent-soft: #e2eff2;
+    --ok: #2e8b62;
+    --ok-soft: #e0f0e8;
+    --warn: #a8790a;
+    --warn-soft: #f6eed6;
+    --bad: #c0453e;
+    --bad-soft: #f8e4e2;
+    --none: #7b878c;
+    --none-soft: #e9edee;
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ground: #13171a;
+    --surface: #1a2024;
+    --surface-sunken: #12171a;
+    --line: #2c3439;
+    --line-soft: #232b30;
+    --ink: #e4eaec;
+    --ink-muted: #9aa7ad;
+    --ink-faint: #6d7a80;
+    --accent: #57b3c6;
+    --accent-soft: #17313a;
+    --ok: #56b98c;
+    --ok-soft: #14312a;
+    --warn: #d3a53a;
+    --warn-soft: #322a15;
+    --bad: #e0706a;
+    --bad-soft: #38201f;
+    --none: #7f8c92;
+    --none-soft: #232b2f;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: var(--step-0);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 68rem;
+    margin: 0 auto;
+    padding: 2.5rem 1.25rem 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+  }
+
+  /* ---------- header ---------- */
+
+  .masthead { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: var(--step--1);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  h1 {
+    margin: 0;
+    font-size: var(--step-3);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+    text-wrap: balance;
+  }
+
+  .lede {
+    margin: 0;
+    max-width: 46rem;
+    color: var(--ink-muted);
+  }
+
+  .lede code {
+    font-family: var(--mono);
+    font-size: 0.9em;
+    background: var(--surface-sunken);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+  }
+
+  /* ---------- summary tiles ---------- */
+
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+    gap: 0.75rem;
+  }
+
+  .tile {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 0.85rem 0.95rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .tile-num {
+    font-family: var(--mono);
+    font-size: var(--step-2);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  .tile-label {
+    font-size: var(--step--1);
+    color: var(--ink-muted);
+  }
+
+  .tile-sub {
+    font-family: var(--mono);
+    font-size: var(--step--1);
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tile.is-ok .tile-num { color: var(--ok); }
+  .tile.is-warn .tile-num { color: var(--warn); }
+  .tile.is-bad .tile-num { color: var(--bad); }
+
+  /* ---------- coverage bar ---------- */
+
+  .coverage {
+    display: flex;
+    height: 0.65rem;
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+  }
+
+  .coverage span { display: block; }
+  .coverage .seg-full { background: var(--ok); }
+  .coverage .seg-part { background: var(--warn); }
+  .coverage .seg-fail { background: var(--bad); }
+  .coverage .seg-none { background: var(--none); }
+
+  .coverage-key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem 1.1rem;
+    font-size: var(--step--1);
+    color: var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .coverage-key b {
+    font-weight: 600;
+    font-family: var(--mono);
+    color: var(--ink);
+  }
+
+  .dot {
+    display: inline-block;
+    width: 0.55em;
+    height: 0.55em;
+    border-radius: 50%;
+    margin-inline-end: 0.4em;
+    vertical-align: 0.05em;
+  }
+
+  .dot.full { background: var(--ok); }
+  .dot.part { background: var(--warn); }
+  .dot.fail { background: var(--bad); }
+  .dot.none { background: var(--none); }
+
+  /* ---------- controls ---------- */
+
+  .controls {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--ground);
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--line-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .control-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .control-label {
+    font-size: var(--step--1);
+    color: var(--ink-faint);
+    font-family: var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-inline-end: 0.25rem;
+  }
+
+  input[type="search"] {
+    flex: 1 1 14rem;
+    min-width: 0;
+    font: inherit;
+    font-size: var(--step-0);
+    padding: 0.45rem 0.7rem;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: var(--surface);
+    color: var(--ink);
+  }
+
+  input[type="search"]:focus-visible,
+  .chip:focus-visible,
+  .card-head:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .chip {
+    font: inherit;
+    font-size: var(--step--1);
+    padding: 0.3rem 0.65rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink-muted);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .chip:hover { border-color: var(--accent); color: var(--ink); }
+
+  .chip[aria-pressed="true"] {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .chip .count {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    opacity: 0.75;
+    margin-inline-start: 0.35em;
+  }
+
+  .result-count {
+    font-size: var(--step--1);
+    color: var(--ink-muted);
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- cards ---------- */
+
+  .list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    border-inline-start: 3px solid var(--none);
+    overflow: hidden;
+  }
+
+  .card.s-full { border-inline-start-color: var(--ok); }
+  .card.s-part { border-inline-start-color: var(--warn); }
+  .card.s-fail { border-inline-start-color: var(--bad); }
+
+  .card-head {
+    width: 100%;
+    text-align: start;
+    background: none;
+    border: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    padding: 0.7rem 0.9rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.35rem 0.9rem;
+  }
+
+  .card-head:hover { background: var(--surface-sunken); }
+
+  .card-title {
+    grid-column: 1;
+    font-weight: 600;
+    line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .status {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: start;
+    font-size: var(--step--1);
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  .status.s-full { background: var(--ok-soft); color: var(--ok); }
+  .status.s-part { background: var(--warn-soft); color: var(--warn); }
+  .status.s-fail { background: var(--bad-soft); color: var(--bad); }
+  .status.s-none { background: var(--none-soft); color: var(--none); }
+
+  .meta {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem 0.85rem;
+    font-size: var(--step--1);
+    color: var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .meta .k { color: var(--ink-faint); }
+  .meta .mono { font-family: var(--mono); }
+
+  .tag {
+    font-size: var(--step--1);
+    padding: 0.05rem 0.4rem;
+    border-radius: 3px;
+    background: var(--surface-sunken);
+    border: 1px solid var(--line-soft);
+    color: var(--ink-muted);
+  }
+
+  .tag.alert { background: var(--bad-soft); border-color: transparent; color: var(--bad); }
+
+  /* timeline: 呼應 userscript 的產物（播放列上的章節標記） */
+  .timeline {
+    grid-column: 1 / -1;
+    position: relative;
+    height: 0.55rem;
+    background: var(--surface-sunken);
+    border-radius: 2px;
+    margin-top: 0.15rem;
+  }
+
+  .timeline i {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    margin-inline-start: -1px;
+    border-radius: 1px;
+    background: var(--ok);
+  }
+
+  .timeline i.miss { background: var(--bad); }
+
+  .card-body {
+    border-top: 1px solid var(--line-soft);
+    padding: 0.85rem 0.9rem 1rem;
+    display: none;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+
+  .card.open .card-body { display: flex; }
+
+  .body-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem 0.9rem;
+    font-size: var(--step--1);
+    color: var(--ink-muted);
+  }
+
+  .body-head a { color: var(--accent); font-family: var(--mono); }
+
+  .lines {
+    font-family: var(--mono);
+    font-size: var(--step--1);
+    line-height: 1.75;
+    background: var(--surface-sunken);
+    border-radius: 5px;
+    padding: 0.6rem 0.75rem;
+    max-height: 22rem;
+    overflow: auto;
+    white-space: pre;
+    tab-size: 4;
+  }
+
+  .lines div { display: flex; gap: 0.6rem; }
+
+  .lines .gut {
+    flex: 0 0 1.1rem;
+    text-align: center;
+    user-select: none;
+    opacity: 0.85;
+  }
+
+  .lines .l-ok .gut { color: var(--ok); }
+  .lines .l-miss { background: var(--bad-soft); border-radius: 3px; }
+  .lines .l-miss .gut { color: var(--bad); }
+  .lines .l-plain { color: var(--ink-faint); }
+  .lines .txt { white-space: pre-wrap; word-break: break-word; }
+
+  .empty {
+    padding: 2.5rem 1rem;
+    text-align: center;
+    color: var(--ink-muted);
+    border: 1px dashed var(--line);
+    border-radius: 6px;
+  }
+
+  footer {
+    border-top: 1px solid var(--line-soft);
+    padding-top: 1rem;
+    font-size: var(--step--1);
+    color: var(--ink-faint);
+  }
+
+  footer code {
+    font-family: var(--mono);
+    color: var(--ink-muted);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .card { transition: border-color 0.12s ease; }
+  }
+
+  @media (max-width: 34rem) {
+    .card-head { grid-template-columns: 1fr; }
+    .status { grid-column: 1; grid-row: auto; justify-self: start; }
+  }
+
+  /* 直接用瀏覽器開檔時的手動主題切換（預設跟隨系統） */
+  .theme-toggle {
+    position: fixed;
+    top: 0.75rem;
+    inset-inline-end: 0.75rem;
+    z-index: 10;
+    font: inherit;
+    font-size: var(--step--1);
+    padding: 0.3rem 0.7rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink-muted);
+    cursor: pointer;
+  }
+
+  .theme-toggle:hover { border-color: var(--accent); color: var(--ink); }
+  .theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" type="button" id="themeToggle">主題</button>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="eyebrow">YoutubeSetlist2Chapters · 測試資料集</div>
+    <h1>歌枠 setlist 格式盤點</h1>
+    <p class="lede">
+      141 部歌枠實際抓下的說明欄與留言。時間軸上每一格是一首歌：<span class="dot full"></span>綠色是現行
+      <code>chapterParser</code> 解析得出的章節，<span class="dot fail"></span>紅色是漏掉的。
+      點任一列展開逐行對照。
+    </p>
+  </header>
+
+  <section class="tiles" id="tiles"></section>
+
+  <section style="display:flex; flex-direction:column; gap:0.45rem">
+    <div class="coverage" id="coverage"></div>
+    <div class="coverage-key" id="coverageKey"></div>
+  </section>
+
+  <div class="controls">
+    <div class="control-row">
+      <input type="search" id="q" placeholder="搜尋標題、影片 ID、歌名…" aria-label="搜尋" />
+      <span class="result-count" id="resultCount"></span>
+    </div>
+    <div class="control-row" id="statusFilters">
+      <span class="control-label">解析</span>
+    </div>
+    <div class="control-row" id="traitFilters">
+      <span class="control-label">特徵</span>
+    </div>
+    <div class="control-row" id="sortRow">
+      <span class="control-label">排序</span>
+    </div>
+  </div>
+
+  <section class="list" id="list"></section>
+
+  <footer>
+    資料由 <code>test/fetch-video-data.mjs</code> 抓取、<code>test/analyze-setlists.mjs</code> 判讀，
+    本頁由 <code>test/build-candidates-page.mjs</code> 產生。解析結果在瀏覽器端以與
+    <code>src/chapterParser.ts</code> 相同的規則即時重算。
+  </footer>
+</div>
+
+<script src="_page-data.js"></script>
+<script>
+  const DATA = window.SETLIST_DATA || [];
+  if (DATA.length === 0) {
+    document.getElementById("list").innerHTML =
+      '<div class="empty">找不到資料。請先執行 <code>node test/analyze-setlists.mjs</code> 產生 <code>test/_page-data.js</code>。</div>';
+  }
+
+  /* 與 src/chapterParser.ts 的 basicLineParseStrategy 同規則 */
+  const TIMESTAMP_START_RE = /^(\d{1,2}:\d{2}(?::\d{2})?)/;
+  const SEPARATOR_RE = /^[\s\-–—|•·:]+/;
+  const ANY_TIMESTAMP_RE = /(\d{1,3}):([0-5]?\d)(?::([0-5]\d))?/;
+
+  function toSec(m) {
+    return m[3] === undefined
+      ? Number(m[1]) * 60 + Number(m[2])
+      : Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]);
+  }
+
+  function parseLine(line) {
+    const trimmed = line.trim();
+    const m = trimmed.match(TIMESTAMP_START_RE);
+    if (!m) return null;
+    const title = trimmed.slice(m[0].length).replace(SEPARATOR_RE, "").trim();
+    if (!title) return null;
+    const parts = m[1].split(":").map(Number);
+    const sec = parts.length === 3
+      ? parts[0] * 3600 + parts[1] * 60 + parts[2]
+      : parts[0] * 60 + parts[1];
+    return { sec, title };
+  }
+
+  /** 逐行判定：解析成功 / 有時間戳但解析失敗 / 非 setlist 行 */
+  function analyse(video) {
+    const lines = (video.text || "").split(/\r?\n/).map((line) => {
+      const parsed = parseLine(line);
+      if (parsed) return { kind: "ok", line, sec: parsed.sec, title: parsed.title };
+      const m = line.match(ANY_TIMESTAMP_RE);
+      if (m && video.durationSec && toSec(m) <= video.durationSec * 1.02) {
+        return { kind: "miss", line, sec: toSec(m) };
+      }
+      if (m && !video.durationSec) return { kind: "miss", line, sec: toSec(m) };
+      return { kind: "plain", line };
+    });
+    const ok = lines.filter((l) => l.kind === "ok").length;
+    const miss = lines.filter((l) => l.kind === "miss").length;
+    const expected = video.count || ok + miss;
+    let status = "none";
+    if (video.hasSetlist) {
+      if (ok === 0) status = "fail";
+      else if (expected > 0 && ok / expected >= 0.9) status = "full";
+      else status = "part";
+    }
+    return { lines, ok, miss, expected, status };
+  }
+
+  const videos = DATA.map((v) => ({ ...v, ...analyse(v) }));
+
+  const STATUS_LABEL = { full: "完整解析", part: "部分解析", fail: "完全失敗", none: "無 setlist" };
+
+  const TRAITS = [
+    { key: "prefix", label: "時間戳非行首", test: (v) => v.lineHead === false },
+    { key: "multiline", label: "多行排版", test: (v) => v.shape && v.shape.indexOf("多行") === 0 },
+    { key: "mixed", label: "混合排版", test: (v) => v.shape && v.shape.indexOf("混合") === 0 },
+    { key: "desc", label: "說明欄也有", test: (v) => v.descCount > 0 },
+    { key: "descOnly", label: "只有說明欄", test: (v) => v.source === "desc" },
+    { key: "long", label: "40 首以上", test: (v) => v.count >= 40 },
+  ];
+
+  const SORTS = [
+    { key: "status", label: "問題優先" },
+    { key: "songs", label: "歌曲數" },
+    { key: "missed", label: "漏抓數" },
+    { key: "title", label: "標題" },
+  ];
+
+  const state = { q: "", status: "all", traits: new Set(), sort: "status" };
+
+  const el = (id) => document.getElementById(id);
+  const esc = (s) =>
+    String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  function fmtDur(sec) {
+    if (!sec) return "—";
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    return h > 0 ? h + " 小時 " + String(m).padStart(2, "0") + " 分" : m + " 分";
+  }
+
+  /* ---------- 摘要 ---------- */
+
+  function renderSummary() {
+    const by = (s) => videos.filter((v) => v.status === s).length;
+    const total = videos.length;
+    const withSetlist = videos.filter((v) => v.hasSetlist).length;
+    const full = by("full");
+    const tiles = [
+      { num: total, label: "部歌枠", sub: "已抓取說明欄與留言" },
+      { num: withSetlist, label: "部找得到 setlist", sub: Math.round((withSetlist / total) * 100) + "% 覆蓋" },
+      { num: full, label: "部完整解析", sub: Math.round((full / withSetlist) * 100) + "% 的 setlist", cls: "is-ok" },
+      { num: by("part") + by("fail"), label: "部待處理", sub: "部分或完全失敗", cls: "is-bad" },
+      { num: videos.reduce((n, v) => n + v.miss, 0), label: "首歌被漏掉", sub: "現行 parser", cls: "is-warn" },
+    ];
+    el("tiles").innerHTML = tiles
+      .map(
+        (t) =>
+          '<div class="tile ' + (t.cls || "") + '">' +
+          '<span class="tile-num">' + t.num + "</span>" +
+          '<span class="tile-label">' + t.label + "</span>" +
+          '<span class="tile-sub">' + t.sub + "</span></div>"
+      )
+      .join("");
+
+    const order = ["full", "part", "fail", "none"];
+    const segCls = { full: "seg-full", part: "seg-part", fail: "seg-fail", none: "seg-none" };
+    el("coverage").innerHTML = order
+      .map((s) => {
+        const n = by(s);
+        return n === 0 ? "" : '<span class="' + segCls[s] + '" style="flex:' + n + '" title="' + STATUS_LABEL[s] + " " + n + '"></span>';
+      })
+      .join("");
+    el("coverageKey").innerHTML = order
+      .map((s) => '<span><span class="dot ' + s + '"></span>' + STATUS_LABEL[s] + " <b>" + by(s) + "</b></span>")
+      .join("");
+  }
+
+  /* ---------- 篩選列 ---------- */
+
+  function renderFilters() {
+    const by = (s) => videos.filter((v) => v.status === s).length;
+    const statuses = [{ key: "all", label: "全部", n: videos.length }].concat(
+      ["fail", "part", "full", "none"].map((s) => ({ key: s, label: STATUS_LABEL[s], n: by(s) }))
+    );
+    el("statusFilters").innerHTML =
+      '<span class="control-label">解析</span>' +
+      statuses
+        .map(
+          (s) =>
+            '<button class="chip" type="button" data-status="' + s.key + '" aria-pressed="' +
+            (state.status === s.key) + '">' + s.label + '<span class="count">' + s.n + "</span></button>"
+        )
+        .join("");
+
+    el("traitFilters").innerHTML =
+      '<span class="control-label">特徵</span>' +
+      TRAITS.map((t) => {
+        const n = videos.filter(t.test).length;
+        return (
+          '<button class="chip" type="button" data-trait="' + t.key + '" aria-pressed="' +
+          state.traits.has(t.key) + '">' + t.label + '<span class="count">' + n + "</span></button>"
+        );
+      }).join("");
+
+    el("sortRow").innerHTML =
+      '<span class="control-label">排序</span>' +
+      SORTS.map(
+        (s) =>
+          '<button class="chip" type="button" data-sort="' + s.key + '" aria-pressed="' +
+          (state.sort === s.key) + '">' + s.label + "</button>"
+      ).join("");
+  }
+
+  /* ---------- 列表 ---------- */
+
+  const RANK = { fail: 0, part: 1, none: 2, full: 3 };
+
+  function visible() {
+    const q = state.q.trim().toLowerCase();
+    let out = videos.filter((v) => {
+      if (state.status !== "all" && v.status !== state.status) return false;
+      for (const key of state.traits) {
+        const t = TRAITS.find((x) => x.key === key);
+        if (t && !t.test(v)) return false;
+      }
+      if (!q) return true;
+      return (
+        v.title.toLowerCase().indexOf(q) !== -1 ||
+        v.id.toLowerCase().indexOf(q) !== -1 ||
+        (v.text || "").toLowerCase().indexOf(q) !== -1
+      );
+    });
+    const cmp = {
+      status: (a, b) => RANK[a.status] - RANK[b.status] || b.miss - a.miss,
+      songs: (a, b) => b.count - a.count,
+      missed: (a, b) => b.miss - a.miss,
+      title: (a, b) => a.title.localeCompare(b.title, "ja"),
+    }[state.sort];
+    return out.sort(cmp);
+  }
+
+  function timelineHtml(v) {
+    if (!v.durationSec) return "";
+    const ticks = v.lines
+      .filter((l) => l.kind === "ok" || l.kind === "miss")
+      .map((l) => {
+        const pos = Math.max(0, Math.min(100, (l.sec / v.durationSec) * 100));
+        return '<i class="' + (l.kind === "miss" ? "miss" : "") + '" style="left:' + pos.toFixed(2) + '%"></i>';
+      })
+      .join("");
+    return '<div class="timeline" aria-hidden="true">' + ticks + "</div>";
+  }
+
+  function cardHtml(v) {
+    const tags = [];
+    if (v.shape) tags.push('<span class="tag">' + esc(v.shape) + "</span>");
+    if (v.lineHead === false) tags.push('<span class="tag alert">非行首</span>');
+    if (v.source === "desc") tags.push('<span class="tag">來源：說明欄</span>');
+
+    // 影片 ID 直接放在列表上：同一位直播主重開台會產生同標題的不同影片
+    const meta =
+      '<div class="meta">' +
+      '<span class="mono" style="color:var(--ink-faint)">' + v.id + "</span>" +
+      '<span class="k">時長</span><span class="mono">' + fmtDur(v.durationSec) + "</span>" +
+      '<span class="k">歌曲</span><span class="mono">' + v.count + "</span>" +
+      '<span class="k">解析</span><span class="mono">' + v.ok + " / " + v.expected + "</span>" +
+      (v.descCount ? '<span class="k">說明欄</span><span class="mono">' + v.descCount + "</span>" : "") +
+      tags.join("") +
+      "</div>";
+
+    return (
+      '<article class="card s-' + v.status + '" id="c-' + v.id + '">' +
+      '<button class="card-head" type="button" aria-expanded="false">' +
+      '<span class="card-title">' + esc(v.title) + "</span>" +
+      '<span class="status s-' + v.status + '">' + STATUS_LABEL[v.status] + "</span>" +
+      meta +
+      timelineHtml(v) +
+      "</button>" +
+      '<div class="card-body">' +
+      '<div class="body-head">' +
+      '<a href="https://www.youtube.com/watch?v=' + v.id + '" target="_blank" rel="noopener">' + v.id + " ↗</a>" +
+      "<span>" + (v.source === "desc" ? "說明欄" : "留言：" + esc(v.author || "")) + "</span>" +
+      (v.likes ? "<span>讚 " + esc(v.likes) + "</span>" : "") +
+      "<span>漏抓 " + v.miss + " 行</span>" +
+      "</div>" +
+      '<div class="lines">' +
+      v.lines
+        .map((l) => {
+          const cls = l.kind === "ok" ? "l-ok" : l.kind === "miss" ? "l-miss" : "l-plain";
+          const gut = l.kind === "ok" ? "✓" : l.kind === "miss" ? "✗" : "·";
+          return '<div class="' + cls + '"><span class="gut">' + gut + '</span><span class="txt">' + esc(l.line || " ") + "</span></div>";
+        })
+        .join("") +
+      "</div></div></article>"
+    );
+  }
+
+  function render() {
+    const rows = visible();
+    el("resultCount").textContent = rows.length + " / " + videos.length + " 部";
+    el("list").innerHTML = rows.length
+      ? rows.map(cardHtml).join("")
+      : '<div class="empty">沒有符合條件的影片。</div>';
+  }
+
+  /* ---------- 事件 ---------- */
+
+  el("q").addEventListener("input", (e) => {
+    state.q = e.target.value;
+    render();
+  });
+
+  document.addEventListener("click", (e) => {
+    const chip = e.target.closest(".chip");
+    if (chip) {
+      if (chip.dataset.status) state.status = chip.dataset.status;
+      else if (chip.dataset.sort) state.sort = chip.dataset.sort;
+      else if (chip.dataset.trait) {
+        const k = chip.dataset.trait;
+        state.traits.has(k) ? state.traits.delete(k) : state.traits.add(k);
+      }
+      renderFilters();
+      render();
+      return;
+    }
+    const head = e.target.closest(".card-head");
+    if (head) {
+      const card = head.closest(".card");
+      const open = card.classList.toggle("open");
+      head.setAttribute("aria-expanded", String(open));
+    }
+  });
+
+  el("themeToggle").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const current = root.dataset.theme || (dark ? "dark" : "light");
+    root.dataset.theme = current === "dark" ? "light" : "dark";
+  });
+
+  renderSummary();
+  renderFilters();
+  render();
+</script>
+</body>
+</html>

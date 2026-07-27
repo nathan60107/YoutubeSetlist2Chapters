@@ -20,7 +20,7 @@
     "post-build": "npm run node-ts -- ./src/tools/post-build.ts",
     "node-ts": "node --no-warnings=ExperimentalWarning --enable-source-maps --loader ts-node/esm",
     "invisible": "node --enable-source-maps src/tools/run-invisible.mjs",
-    "test": "npm run node-ts -- ./test.ts"
+    "test": "npm run node-ts -- ./test/regression.ts"
   },
   "repository": {
     "type": "git",

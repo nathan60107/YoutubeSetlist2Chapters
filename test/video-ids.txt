@@ -1,0 +1,162 @@
+# 測試影片清單：一行一個 videoId，供 fetch-video-data.mjs 讀取。
+#
+# 以 # 開頭的是排除的影片，保留備查，原因寫在該行後面。
+# 收錄標準不是「是不是歌枠」，而是「留言或說明欄有沒有帶時間戳的 setlist」——
+# 例如 aO2aIZE9UOM 是合作企劃不是歌枠，但留言有 27 首的 setlist，一樣是有效測試對象。
+
+zVxGPtUNiTw
+hAXuISMFPFw
+Q795SfTQhPo
+v9GeiTD6dj8
+IooUAo0J-B0
+AXnGqjxSnds
+Rku_cz0kTzU
+OPf3tMOdR_k
+KQN7xupRsD8
+fArm65JcMmU
+vVau20_T6WM
+MI_yyBBJVnM
+EOeyn9TxWRk
+# N-rR_HhJfeo  直播尚未開始，開播且結束後再取消註解重抓
+CNJJ2wHGNr8
+az7h2c1kYX0
+7nCSDGpK7qM
+3eqcldh2EXM
+e142W--qi78
+3J38-z4Qh1Q
+J2Z7lNsTPow
+eRKGvuQK-7U
+lWg-RUrvzDU
+S4vC8hvsXsY
+tyeSFyVVxEc
+jJiXNv2Ftsw
+uKHlwPY8NAA
+CqRvi2wLgHI
+U6R9gcbkLNs
+w1pYKhcy8bQ
+# 6RCe4n8ic5I  Kizuna AI 10th Birthday Single「My Love」Official Mu
+33TPlXH9U8U
+bNsnfdnlr58
+LKGmRfc3wpE
+A5rM0aPZTkE
+kRmccwgdI8w
+qCqEwWysqHY
+SwoHbyF8-ZM
+kJEESWOCzUM
+FJr4sxlTsw4
+8ZveYCCMWt8
+# gAxVnvfa6lU  Kizuna AI 10th Birthday Single「My Love」MV Teaser
+4HLrJ_b5NDk
+# 8-oyz1FjJiM  【雑談】初歌枠めっちゃたのしかった～！✨💫【明透/神椿】
+7bTyBEPcgaE
+burbVariRzY
+Pvz84zA7Cew
+WVzSNAYQPFM
+ZTllfu3tcCw
+BNBjUrTAaO4
+wnHX5Vt9M50
+QxwwGwKxvWE
+dgWSUWZ5aYg
+c-tBKqab9ew
+20OiQfiWXp8
+KmYxHjDD8gE
+sVA6bzkhqEY
+OqoxrEUVIdw
+gu1ICe1HGOE
+aO2aIZE9UOM
+H99VEWMvceY
+l6iUCrZXXHg
+NBSGIrT4dZ0
+iOJwx1lGF7o
+# 9KUnqBXoKNc  2026.8.22 🎤「VSinger UTAMATSURI LIVE in Toyosu PIT
+# RtTqS_aBqA8  《メン限：オリ曲考察》2nd Single『月華歌』考察会場🦉【羽緒 / RK Music】#羽緒
+aUNkV7c48fw
+Og6Pq8gukGU
+yP9Qz6hBpcs
+VXwjtsaiDxA
+37XJM6EIrns
+DuDkasY22Mc
+8Hs3ZDmvEhU
+CaXlKc-XKQ0
+6u8BnPZ5tr4
+YZLK9V0oPTw
+2DmLFzh4elo
+zAqcZDpOM1Q
+oWwBzyRG93o
+-Ygjz2Vx7Is
+ouGdQUzR1y4
+C2tOkNn8DZA
+CjwNCMY1WQ4
+pOnXKE1MSkc
+YdM4OewAJ8E
+tfzoaUeTBQA
+5uqm5ZdiTd0
+cC4Wcf1I8ec
+_lKgLhWSCCM
+k3whdZpmSA4
+YBqel-OrDcE
+KzCO7uCvbm4
+1rCEayGJi54
+TIT_DxHbY7w
+FqcF7fGGHK4
+XT_uK86EIZY
+GRVHFrwW2sY
+H08uBwKSMqU
+# G_q_zpDOlFQ  【歌詞考察】Brave Shineをみんなと考察する！！ #ウタノライブ【KARAOKE/Vsing
+MdABOdW51gU
+ITsDGzPeHiY
+BE8sDQ8qWn0
+ICrSjy2zh-Q
+cRiywPhs_gk
+RpcWDry3_BE
+VxfKpmFw8zs
+OgrJp8buR_Q
+DGcoc_j4Vv4
+# W_Fb-WIlz3E  東京ファンミーティング楽しみ方講座📖！ #ウタノライブ【KARAOKE/Vsinger】
+Lq3a7UKIsws
+3Bj6N-OthA0
+zqC0NqN9JYg
+Y5Fi21JXBHg
+dlv_XH2d5yU
+e7ihYopcN4E
+ouJ1GdYwl_k
+6m7H0EFNAMQ
+MbMfPat5VLA
+12inOe8h0I8
+3__2Vow7eiQ
+oZFekEboAQM
+OLfXjym4SmE
+XJNw_YQ3ksg
+RNQV4Tt86mk
+tLc8rgBxwWE
+EhVohJ3K84k
+GUXbG-1J4aU
+EbdO2KHwRQI
+02pr8P_jjPg
+WOZL23lPq9o
+H5tW89Qk2uY
+IXEG5yOEzUk
+vZE1caYquPQ
+jAzINIvgVqE
+J-lqXHyYJGQ
+Trr99qbBqBo
+xbyG7oSdUqU
+Ho7OHya2mNM
+admpzV3Gs1g
+uy2u2PyTfTo
+OB45mgv_Vv4
+De5LXMx-lqE
+Lft6T1eLyT0
+CS3ZQZ_Ma3g
+78SkkDdtmX0
+41FplBpe3sM
+w42Vwgzjo10
+fLVfk9agUp8
+# zoq8FK6CFoc  福岡ありがとう&東京に向けて決起集会‼️ #ウタノライブ 【KARAOKE/Vtuber/歌い手】
+
+# --- 以下來自 testcases.md 的手選案例，不在 collect-links.js 的蒐集範圍內 ---
+# O2k2EupPzLs 與 ljWlIgFIS1Y 是同一位直播主同日同標題的兩場直播
+# （連線不穩重開），是不同影片，務必分開處理，不可依標題去重。
+O2k2EupPzLs
+ljWlIgFIS1Y
+oO9CAnhWNKI
