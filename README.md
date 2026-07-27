@@ -18,6 +18,16 @@ It automatically detects concert setlists posted in YouTube video comments and c
 - **Manual selection** — Lets you manually pick a comment when auto-detection falls short
 - **Settings panel** — Customizable options (auto/manual mode, display preferences, etc.)
 
+## Roadmap
+
+Planned features and improvements:
+
+- **Respect official chapters** — do nothing when the video already has official (creator-provided) chapters
+- **Description parsing** — detect setlists from the video description, not just comments
+- **More format support** — handle additional setlist / timestamp styles and edge cases
+- **Result caching** — remember the chosen setlist per video to avoid re-parsing
+- **Multi-language UI** — localized user interface
+
 ## Installation
 
 > This project is currently under active development. Installation links will be added with the first release.
