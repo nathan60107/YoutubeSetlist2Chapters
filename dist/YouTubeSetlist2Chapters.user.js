@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name              YouTube Setlist to Chapters
 // @namespace         https://github.com/nathan60107/YoutubeSetlist2Chapters
-// @version           0.1.1
+// @version           0.1.2
 // @description       Converts YouTube comment setlists into chapter markers on the YouTube player progress bar
 // @homepageURL       https://github.com/nathan60107/YoutubeSetlist2Chapters#readme
 // @supportURL        https://github.com/nathan60107/YoutubeSetlist2Chapters/issues
 // @license           MIT
 // @author            nathan60107
 // @copyright         nathan60107 (https://github.com/nathan60107)
-// @icon              https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=11ff509
+// @icon              https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=2c73c87
 // @match             *://www.youtube.com/watch*
 // @match             *://youtube.com/watch*
 // @run-at            document-start
@@ -23,7 +23,7 @@
 // @grant             GM.xmlHttpRequest
 // @grant             GM.openInTab
 // @noframes
-// @resource          img-icon https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=11ff509
+// @resource          img-icon https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=2c73c87
 // @require           https://cdn.jsdelivr.net/npm/@sv443-network/userutils@6.3.0/dist/index.global.js
 // ==/UserScript==
 
@@ -79,7 +79,7 @@
         return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
     };
 
-    const buildNumberRaw = "11ff509";
+    const buildNumberRaw = "2c73c87";
     /** The build number of the userscript */
     const buildNumber = (buildNumberRaw.match(/^#{{.+}}$/) ? "BUILD_ERROR!" : buildNumberRaw); // asserted as generic string instead of literal
     /** Default compression format used throughout the entire script */
@@ -32171,11 +32171,11 @@
         CustomEvent: globalThis.CustomEvent
     });
 
-    const TIMESTAMP_RE = /\d{1,2}:\d{2}(?::\d{2})?/g;
+    const TIMESTAMP_RE$1 = /\d{1,2}:\d{2}(?::\d{2})?/g;
     /** Counts timestamp-like patterns (e.g. 0:00, 1:23:45) in a string */
     function countTimestamps(text) {
         var _a;
-        return ((_a = text.match(TIMESTAMP_RE)) !== null && _a !== void 0 ? _a : []).length;
+        return ((_a = text.match(TIMESTAMP_RE$1)) !== null && _a !== void 0 ? _a : []).length;
     }
     /** Picks the comment with the highest timestamp count (minimum 2 to qualify) */
     const mostTimestampsStrategy = {
@@ -32189,10 +32189,18 @@
     };
     const activeCommentFindStrategy = mostTimestampsStrategy;
 
-    /** Matches a timestamp at the very start of a trimmed line: 0:00, 1:23, 1:23:45 */
-    const TIMESTAMP_START_RE = /^(\d{1,2}:\d{2}(?::\d{2})?)/;
-    /** Strips common separator characters between the timestamp and the chapter title */
-    const SEPARATOR_RE = /^[\s\-–—|•·:]+/;
+    /**
+     * Matches the first timestamp anywhere in the line: 0:00, 1:23, 1:23:45.
+     *
+     * Deliberately unanchored. 19% of setlists number their songs, and the numbering is written
+     * every way imaginable — `01.`, `08. `, `1  . `, `①`, full-width `１`. Enumerating those
+     * prefixes is a losing game and a stripper for them risks eating the hour out of a plain
+     * `10:00 シャルル`. Taking the first timestamp wherever it sits makes every prefix a non-issue.
+     */
+    const TIMESTAMP_RE = /\d{1,2}:\d{2}(?::\d{2})?/;
+    /** Strips common separator characters left behind on either side of the removed timestamp */
+    const LEADING_SEPARATOR_RE = /^[\s\-–—|•·:]+/;
+    const TRAILING_SEPARATOR_RE = /[\s\-–—|•·:]+$/;
     function parseTimestampSec(ts) {
         const parts = ts.split(":").map(Number);
         return parts.length === 3
@@ -32200,21 +32208,32 @@
             : parts[0] * 60 + parts[1];
     }
     /**
-     * Basic strategy: timestamp must appear at the very start of the line.
-     * Everything after it (minus a separator) becomes the chapter title.
-     * Example: "0:00 - Intro" → { timestampSec: 0, title: "Intro" }
+     * Basic strategy: the first timestamp on the line wins, wherever it sits, and the title is
+     * whatever text the line has left — the two are not required to be in any particular order.
+     *
+     * The text after the timestamp is preferred, and only when there is none does the text before
+     * it become the title. That ordering is what keeps a numbering prefix out of the title: on
+     * `01. 0:00 Intro` both sides hold text, and the song name is the one on the right.
+     *
+     * Example: "0:00 - Intro"    → { timestampSec: 0, title: "Intro" }
+     *          "01. 0:00 Intro"  → { timestampSec: 0, title: "Intro" }
+     *          "🎶 Intro 0:00"   → { timestampSec: 0, title: "🎶 Intro" }
      */
     const basicLineParseStrategy = {
         name: "basic",
         parseLine(line) {
             const trimmed = line.trim();
-            const match = trimmed.match(TIMESTAMP_START_RE);
+            const match = TIMESTAMP_RE.exec(trimmed);
             if (!match)
                 return null;
-            const title = trimmed.slice(match[0].length).replace(SEPARATOR_RE, "").trim();
+            // No .trim() needed on either: the line is already trimmed, so the only end that can carry
+            // whitespace is the one facing the cut — which is exactly what each regex takes off
+            const after = trimmed.slice(match.index + match[0].length).replace(LEADING_SEPARATOR_RE, "");
+            const before = trimmed.slice(0, match.index).replace(TRAILING_SEPARATOR_RE, "");
+            const title = after || before;
             if (!title)
                 return null;
-            return { timestampSec: parseTimestampSec(match[1]), title };
+            return { timestampSec: parseTimestampSec(match[0]), title };
         },
     };
     const activeChapterParseStrategy = basicLineParseStrategy;

@@ -11,6 +11,7 @@ module.exports = {
     "dist/**",
     "test/data/**",
     "test/_page-data.js",
+    "test/_parser.js",
   ],
   extends: [
     "eslint:recommended",

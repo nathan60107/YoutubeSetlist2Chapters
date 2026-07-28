@@ -583,6 +583,7 @@
 </div>
 
 <script src="_page-data.js"></script>
+<script src="_parser.js"></script>
 <script>
   const DATA = window.SETLIST_DATA || [];
   if (DATA.length === 0) {
@@ -590,9 +591,21 @@
       '<div class="empty">找不到資料。請先執行 <code>node test/analyze-setlists.mjs</code> 產生 <code>test/_page-data.js</code>。</div>';
   }
 
-  /* 與 src/chapterParser.ts 的 basicLineParseStrategy 同規則 */
-  const TIMESTAMP_START_RE = /^(\d{1,2}:\d{2}(?::\d{2})?)/;
-  const SEPARATOR_RE = /^[\s\-–—|•·:]+/;
+  /*
+   * 真正的 parser 由 test/_parser.js 提供 —— 那是 npm test（或 npm run test-page）
+   * 從 src/chapterParser.ts 打包出來的，不是抄本，所以這頁的判定跟正式程式碼一致。
+   *
+   * 缺檔就整頁擋下來：靜靜套用一份不存在或過期的規則會把已經修好的影片標成
+   * 「完全失敗」，比看到一則「請先執行 npm run test-page」難發現得多。
+   */
+  if (typeof CHAPTER_PARSER === "undefined") {
+    document.getElementById("list").innerHTML =
+      '<div class="empty">找不到 parser。請先執行 <code>npm run test-page</code> 產生 <code>test/_parser.js</code>。</div>';
+    throw new Error("test/_parser.js 未產生");
+  }
+  const parseLine = (line) => CHAPTER_PARSER.activeChapterParseStrategy.parseLine(line);
+
+  /** 這行有時間戳但 parser 不收 —— 用來把「漏掉的行」跟「本來就不是 setlist 的行」分開 */
   const ANY_TIMESTAMP_RE = /(\d{1,3}):([0-5]?\d)(?::([0-5]\d))?/;
 
   function toSec(m) {
@@ -601,24 +614,11 @@
       : Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]);
   }
 
-  function parseLine(line) {
-    const trimmed = line.trim();
-    const m = trimmed.match(TIMESTAMP_START_RE);
-    if (!m) return null;
-    const title = trimmed.slice(m[0].length).replace(SEPARATOR_RE, "").trim();
-    if (!title) return null;
-    const parts = m[1].split(":").map(Number);
-    const sec = parts.length === 3
-      ? parts[0] * 3600 + parts[1] * 60 + parts[2]
-      : parts[0] * 60 + parts[1];
-    return { sec, title };
-  }
-
   /** 逐行判定：解析成功 / 有時間戳但解析失敗 / 非 setlist 行 */
   function analyse(video) {
     const lines = (video.text || "").split(/\r?\n/).map((line) => {
       const parsed = parseLine(line);
-      if (parsed) return { kind: "ok", line, sec: parsed.sec, title: parsed.title };
+      if (parsed) return { kind: "ok", line, sec: parsed.timestampSec, title: parsed.title };
       const m = line.match(ANY_TIMESTAMP_RE);
       if (m && video.durationSec && toSec(m) <= video.durationSec * 1.02) {
         return { kind: "miss", line, sec: toSec(m) };
@@ -787,7 +787,8 @@
   function cardHtml(v) {
     const tags = [];
     if (v.shape) tags.push('<span class="tag">' + esc(v.shape) + "</span>");
-    if (v.lineHead === false) tags.push('<span class="tag alert">非行首</span>');
+    // 非行首曾經等於解析失敗，現在 parser 吃得下，所以只是排版特徵，不再標紅
+    if (v.lineHead === false) tags.push('<span class="tag">非行首</span>');
     if (v.source === "desc") tags.push('<span class="tag">來源：說明欄</span>');
 
     // 影片 ID 直接放在列表上：同一位直播主重開台會產生同標題的不同影片
