@@ -1,4 +1,5 @@
 import "./chapterOverlay.css";
+import { log, warn } from "../log";
 import type { Chapter } from "../types";
 
 const PROGRESS_BAR_SEL = ".ytp-progress-bar";
@@ -28,7 +29,7 @@ export function removeOverlay(): void {
   currentContainer = null;
   currentTooltip?.remove();
   currentTooltip = null;
-  console.log("[YS2C] Chapter overlay removed");
+  log("Chapter overlay removed");
 }
 
 /**
@@ -62,7 +63,7 @@ function computeSegments(chapters: Chapter[], videoDuration: number): Segment[] 
     return { startSec, endSec, title: ch.title };
   });
 
-  console.log("[YS2C] Computed segments:", segments.map(s =>
+  log("Computed segments:", segments.map(s =>
     `${s.title} [${s.startSec.toFixed(1)}s – ${s.endSec.toFixed(1)}s]`
   ).join(", "));
 
@@ -137,7 +138,7 @@ function injectSegments(
     progressBar.removeEventListener("mouseleave", hideTooltip);
   };
 
-  console.log(`[YS2C] Injected ${segments.length} chapter segment(s) onto the progress bar`);
+  log(`Injected ${segments.length} chapter segment(s) onto the progress bar`);
 }
 
 function waitForElement<T extends Element>(selector: string, timeoutMs = 8_000): Promise<T> {
@@ -156,7 +157,7 @@ function waitForElement<T extends Element>(selector: string, timeoutMs = 8_000):
 
     setTimeout(() => {
       observer.disconnect();
-      reject(new Error(`[YS2C] Timed out waiting for element: ${selector}`));
+      reject(new Error(`Timed out waiting for element: ${selector}`));
     }, timeoutMs);
   });
 }
@@ -164,30 +165,30 @@ function waitForElement<T extends Element>(selector: string, timeoutMs = 8_000):
 export async function applyChapterOverlay(chapters: Chapter[]): Promise<void> {
   if (chapters.length < 2) return;
 
-  console.log("[YS2C] Waiting for progress bar...");
+  log("Waiting for progress bar...");
 
   let progressBar: HTMLElement;
   try {
     progressBar = await waitForElement<HTMLElement>(PROGRESS_BAR_SEL);
   }
   catch (err) {
-    console.warn((err as Error).message);
+    warn((err as Error).message);
     return;
   }
 
   const video = document.querySelector<HTMLVideoElement>(VIDEO_SEL);
   if (!video) {
-    console.warn("[YS2C] Video element not found");
+    warn("Video element not found");
     return;
   }
 
   const tryInject = () => {
     const duration = video.duration;
     if (!isFinite(duration) || duration <= 0) {
-      console.warn("[YS2C] Video duration not ready:", duration);
+      warn("Video duration not ready:", duration);
       return;
     }
-    console.log(`[YS2C] Video duration: ${duration}s — computing segments`);
+    log(`Video duration: ${duration}s — computing segments`);
     const segments = computeSegments(chapters, duration);
     injectSegments(progressBar, segments, duration);
   };
@@ -195,7 +196,7 @@ export async function applyChapterOverlay(chapters: Chapter[]): Promise<void> {
   if (video.readyState >= 1)
     tryInject();
   else {
-    console.log("[YS2C] Waiting for video metadata...");
+    log("Waiting for video metadata...");
     video.addEventListener("loadedmetadata", tryInject, { once: true });
   }
 }

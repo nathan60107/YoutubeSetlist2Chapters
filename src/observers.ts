@@ -1,4 +1,5 @@
 import { SelectorListenerOptions, SelectorObserver, type SelectorObserverConstructorOptions } from "@sv443-network/userutils";
+import { error } from "./log";
 
 export type ObserverName =
   | "body";
@@ -39,7 +40,7 @@ export function initObservers() {
     // });
   }
   catch(err) {
-    console.error("Failed to initialize observers:", err);
+    error("Failed to initialize observers:", err);
   }
 }
 
