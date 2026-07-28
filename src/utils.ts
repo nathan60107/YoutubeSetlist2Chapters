@@ -1,4 +1,5 @@
-import { addGlobalStyle, openInNewTab, randomId, type LooseUnion } from "@sv443-network/userutils";
+import { openInNewTab, randomId, type LooseUnion } from "@sv443-network/userutils";
+import { warn } from "./log";
 import type resources from "../assets/resources.json";
 
 //#region resources
@@ -14,7 +15,7 @@ export type ResourceKey = keyof typeof resources;
 export async function getResourceUrl(name: LooseUnion<ResourceKey>) {
   let url = await GM.getResourceUrl(name);
   if(!url || url.length === 0) {
-    console.warn(`Couldn't get blob URL nor external URL for @resource '${name}', trying to use base64-encoded fallback`);
+    warn(`Couldn't get blob URL nor external URL for @resource '${name}', trying to use base64-encoded fallback`);
     // @ts-ignore
     url = await GM.getResourceUrl(name, false);
   }
@@ -98,7 +99,11 @@ function clearNode(element: Element) {
 export function addStyle(css: string, ref?: string) {
   if(!domLoaded)
     throw new Error("DOM has not finished loading yet");
-  const elem = addGlobalStyle(css);
+  // Use textContent rather than a userutils helper's `innerHTML`: on a <style> element innerHTML is
+  // still a Trusted Types sink, which YouTube's CSP blocks in incognito windows. textContent isn't.
+  const elem = document.createElement("style");
+  elem.textContent = css;
   elem.id = `global-style-${ref ?? randomId(5, 36)}`;
+  document.head.appendChild(elem);
   return elem;
 }

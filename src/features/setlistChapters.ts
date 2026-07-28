@@ -1,24 +1,104 @@
 import { Innertube } from "youtubei.js";
 import { activeCommentFindStrategy, countTimestamps } from "../commentFinder";
 import { activeChapterParseStrategy } from "../chapterParser";
+import { log, warn, error } from "../log";
 import type { Chapter, CommentCandidate } from "../types";
 
-/** Maximum number of top comments to evaluate as setlist candidates */
-const CANDIDATE_COUNT = 20;
+/** How many comment pages to fetch (~20 comments each) — setlists are sometimes ranked far down */
+const COMMENT_PAGES = 3;
 
 let yt: Innertube | null = null;
 
 async function getInnertube(): Promise<Innertube> {
   if (!yt) {
-    console.log("[YS2C] Creating Innertube instance...");
-    yt = await Innertube.create();
-    console.log("[YS2C] Innertube ready");
+    log("Creating Innertube instance...");
+    // retrieve_player: false — only /next is used, so skip fetching and evaluating the player JS
+    yt = await Innertube.create({ retrieve_player: false });
+    log("Innertube ready");
   }
   return yt;
 }
 
+/** Calls an Innertube endpoint and returns the raw, unparsed JSON response. */
+async function rawNext(innertube: Innertube, payload: Record<string, unknown>): Promise<any> {
+  const res: any = await innertube.actions.execute("/next", { ...payload, parse: false });
+  return res.data ?? res;
+}
+
+/** Recursively finds the comment section's initial continuation token */
+function findCommentSectionToken(node: any): string | null {
+  if (!node || typeof node !== "object") return null;
+  if (node.itemSectionRenderer?.sectionIdentifier === "comment-item-section") {
+    const t = node.itemSectionRenderer.contents?.[0]?.continuationItemRenderer
+      ?.continuationEndpoint?.continuationCommand?.token;
+    if (t) return t;
+  }
+  for (const v of Array.isArray(node) ? node : Object.values(node)) {
+    const r = findCommentSectionToken(v);
+    if (r) return r;
+  }
+  return null;
+}
+
 /**
- * Fetches the first page of comments for the given video, selects the best
+ * Finds the "next page of comments" token.
+ *
+ * A recursive search is wrong here: the continuationItemRenderer that expands a comment's replies
+ * looks identical (its trigger is ON_ITEM_SHOWN too), so depth-first hits that one first and
+ * paging turns into walking one thread's replies. The right token is always the last item of the
+ * comment list (BODY slot / append).
+ */
+function findNextPageToken(page: any): string | null {
+  for (const ep of page.onResponseReceivedEndpoints ?? []) {
+    const reload = ep.reloadContinuationItemsCommand;
+    const items = reload?.slot === "RELOAD_CONTINUATION_SLOT_BODY"
+      ? reload.continuationItems
+      : ep.appendContinuationItemsAction?.continuationItems;
+    if (!items?.length) continue;
+    const token = items[items.length - 1]?.continuationItemRenderer?.continuationEndpoint
+      ?.continuationCommand?.token;
+    if (token) return token;
+  }
+  return null;
+}
+
+/**
+ * Fetches top-level comments as raw `/next` JSON.
+ *
+ * Deliberately not `innertube.getComments()`: youtubei.js 13.4.0's `CommentView.applyMutations`
+ * throws when `comment.avatar` is missing ("can't access property 'endpoint', comment.avatar is
+ * undefined"), intermittently on the very same video. Reading the text straight out of
+ * `entityBatchUpdate`'s `commentEntityPayload` bypasses the parser entirely. This mirrors what
+ * `test/fetch-video-data.mjs` does, so the runtime sees the same comments the regression suite
+ * measures against.
+ */
+async function fetchComments(innertube: Innertube, videoId: string): Promise<CommentCandidate[]> {
+  const watch = await rawNext(innertube, { videoId });
+  let token = findCommentSectionToken(watch);
+  const out: CommentCandidate[] = [];
+
+  for (let i = 0; i < COMMENT_PAGES && token; i++) {
+    const page = await rawNext(innertube, { continuation: token });
+    const mutations = page.frameworkUpdates?.entityBatchUpdate?.mutations ?? [];
+    for (const m of mutations) {
+      const p = m.payload?.commentEntityPayload;
+      if (!p) continue;
+      // replyLevel 0 = top-level comment; replies can't hold the setlist
+      if (p.properties?.replyLevel) continue;
+      const text = p.properties?.content?.content ?? "";
+      out.push({
+        id: p.properties?.commentId ?? `${videoId}#${out.length}`,
+        text,
+        timestampCount: countTimestamps(text),
+      });
+    }
+    token = findNextPageToken(page);
+  }
+  return out;
+}
+
+/**
+ * Fetches the top-level comments for the given video, selects the best
  * setlist candidate using {@link activeCommentFindStrategy}, then parses it
  * into chapters using {@link activeChapterParseStrategy}.
  *
@@ -26,35 +106,22 @@ async function getInnertube(): Promise<Innertube> {
  */
 export async function getChaptersFromComments(videoId: string): Promise<Chapter[] | null> {
   try {
-    console.log(`[YS2C] Fetching comments for video: ${videoId}`);
+    log(`Fetching comments for video: ${videoId}`);
 
     const innertube = await getInnertube();
-    const commentsPage = await innertube.getComments(videoId);
+    const candidates = await fetchComments(innertube, videoId);
 
-    const totalFetched = commentsPage.contents.length;
-    console.log(`[YS2C] Fetched ${totalFetched} comment(s), evaluating top ${Math.min(totalFetched, CANDIDATE_COUNT)}`);
-
-    const candidates: CommentCandidate[] = commentsPage.contents
-      .slice(0, CANDIDATE_COUNT)
-      .map(thread => {
-        const text = thread.comment?.content?.toString() ?? "";
-        return {
-          id: thread.comment?.comment_id ?? "",
-          text,
-          timestampCount: countTimestamps(text),
-        };
-      });
-
-    console.debug("[YS2C] Candidates (id, timestampCount):", candidates.map(c => ({ id: c.id, timestampCount: c.timestampCount, preview: c.text.slice(0, 60).replace(/\n/g, "↵") })));
+    log(`Fetched ${candidates.length} top-level comment(s) across up to ${COMMENT_PAGES} page(s)`);
+    log("Candidates (id, timestampCount):", candidates.map(c => ({ id: c.id, timestampCount: c.timestampCount, preview: c.text.slice(0, 60).replace(/\n/g, "↵") })));
 
     const target = activeCommentFindStrategy.find(candidates);
     if (!target) {
-      console.warn(`[YS2C] No qualifying comment found (strategy: "${activeCommentFindStrategy.name}"). None had enough timestamps.`);
+      warn(`No qualifying comment found (strategy: "${activeCommentFindStrategy.name}"). None had enough timestamps.`);
       return null;
     }
 
-    console.log(`[YS2C] Selected comment ${target.id} with ${target.timestampCount} timestamp(s) (strategy: "${activeCommentFindStrategy.name}")`);
-    console.debug("[YS2C] Target comment text:\n", target.text);
+    log(`Selected comment ${target.id} with ${target.timestampCount} timestamp(s) (strategy: "${activeCommentFindStrategy.name}")`);
+    log("Target comment text:\n", target.text);
 
     const chapters: Chapter[] = [];
     for (const line of target.text.split("\n")) {
@@ -63,15 +130,15 @@ export async function getChaptersFromComments(videoId: string): Promise<Chapter[
     }
 
     if (chapters.length <= 1) {
-      console.warn(`[YS2C] Parsed only ${chapters.length} chapter(s) from target comment — need at least 2. Aborting.`);
+      warn(`Parsed only ${chapters.length} chapter(s) from target comment — need at least 2. Aborting.`);
       return null;
     }
 
-    console.log(`[YS2C] Successfully parsed ${chapters.length} chapters:`, chapters);
+    log(`Successfully parsed ${chapters.length} chapters:`, chapters);
     return chapters;
   }
   catch (err) {
-    console.error("[YS2C] Failed to get chapters from comments:", err);
+    error("Failed to get chapters from comments:", err);
     return null;
   }
 }

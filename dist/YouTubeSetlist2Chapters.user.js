@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name              YouTube Setlist to Chapters
 // @namespace         https://github.com/nathan60107/YoutubeSetlist2Chapters
-// @version           0.1.0
+// @version           0.1.1
 // @description       Converts YouTube comment setlists into chapter markers on the YouTube player progress bar
 // @homepageURL       https://github.com/nathan60107/YoutubeSetlist2Chapters#readme
 // @supportURL        https://github.com/nathan60107/YoutubeSetlist2Chapters/issues
 // @license           MIT
 // @author            nathan60107
 // @copyright         nathan60107 (https://github.com/nathan60107)
-// @icon              https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=800582e
+// @icon              https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=11ff509
 // @match             *://www.youtube.com/watch*
 // @match             *://youtube.com/watch*
 // @run-at            document-start
@@ -23,7 +23,7 @@
 // @grant             GM.xmlHttpRequest
 // @grant             GM.openInTab
 // @noframes
-// @resource          img-icon https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=800582e
+// @resource          img-icon https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=11ff509
 // @require           https://cdn.jsdelivr.net/npm/@sv443-network/userutils@6.3.0/dist/index.global.js
 // ==/UserScript==
 
@@ -79,7 +79,7 @@
         return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
     };
 
-    const buildNumberRaw = "800582e";
+    const buildNumberRaw = "11ff509";
     /** The build number of the userscript */
     const buildNumber = (buildNumberRaw.match(/^#{{.+}}$/) ? "BUILD_ERROR!" : buildNumberRaw); // asserted as generic string instead of literal
     /** Default compression format used throughout the entire script */
@@ -142,6 +142,47 @@
         });
     }
 
+    /**
+     * Prefixed console logging with an in-memory ring buffer. Every `log`/`warn`/`error` call is both
+     * printed (behind a filterable `[YS2C]` prefix) and captured into a bounded RAM buffer so a debug
+     * report can include recent history without ever touching storage. Kept separate from `utils.ts`
+     * so the many modules that only need logging don't pull in the DOM/GM helpers alongside it.
+     */
+    /** Shared console prefix so every log is filterable and never lost behind a missing tag. */
+    const logPrefix = "[YS2C]";
+    /**
+     * In-memory ring buffer of the most recent log lines from all three streams. Kept in RAM only
+     * (never persisted) so a debug report can include recent history without touching storage.
+     */
+    const logBuffer = [];
+    /** Cap on retained log lines; oldest are dropped past this to bound memory use. */
+    const maxLogEntries = 300;
+    /** Best-effort conversion of a single log argument to a readable string (expanding Errors/objects). */
+    function stringifyArg(arg) {
+        if (typeof arg === "string")
+            return arg;
+        if (arg instanceof Error)
+            return `${arg.name}: ${arg.message}${arg.stack ? `\n${arg.stack}` : ""}`;
+        try {
+            return JSON.stringify(arg);
+        }
+        catch (_a) {
+            return String(arg);
+        }
+    }
+    /** Appends a line to {@linkcode logBuffer}, trimming it back down to {@linkcode maxLogEntries}. */
+    function record(level, args) {
+        logBuffer.push({ t: Date.now(), level, msg: args.map(stringifyArg).join(" ") });
+        if (logBuffer.length > maxLogEntries)
+            logBuffer.splice(0, logBuffer.length - maxLogEntries);
+    }
+    /** Prefixed `console.log`, also captured into the in-memory log buffer. */
+    const log = (...args) => { record("log", args); console.log(logPrefix, ...args); };
+    /** Prefixed `console.warn`, also captured into the in-memory log buffer. */
+    const warn$1 = (...args) => { record("warn", args); console.warn(logPrefix, ...args); };
+    /** Prefixed `console.error`, also captured into the in-memory log buffer. */
+    const error$1 = (...args) => { record("error", args); console.error(logPrefix, ...args); };
+
     //| "foo"
     //| "bar";
     /** Options that are applied to every SelectorObserver instance */
@@ -170,7 +211,7 @@
             // });
         }
         catch (err) {
-            console.error("Failed to initialize observers:", err);
+            error$1("Failed to initialize observers:", err);
         }
     }
 
@@ -185,8 +226,12 @@
     function addStyle(css, ref) {
         if (!domLoaded)
             throw new Error("DOM has not finished loading yet");
-        const elem = userutils.addGlobalStyle(css);
+        // Use textContent rather than a userutils helper's `innerHTML`: on a <style> element innerHTML is
+        // still a Trusted Types sink, which YouTube's CSP blocks in incognito windows. textContent isn't.
+        const elem = document.createElement("style");
+        elem.textContent = css;
         elem.id = `global-style-${ref !== null && ref !== void 0 ? ref : userutils.randomId(5, 36)}`;
+        document.head.appendChild(elem);
         return elem;
     }
 
@@ -32174,21 +32219,108 @@
     };
     const activeChapterParseStrategy = basicLineParseStrategy;
 
-    /** Maximum number of top comments to evaluate as setlist candidates */
-    const CANDIDATE_COUNT = 20;
+    /** How many comment pages to fetch (~20 comments each) — setlists are sometimes ranked far down */
+    const COMMENT_PAGES = 3;
     let yt = null;
     function getInnertube() {
         return __awaiter(this, void 0, void 0, function* () {
             if (!yt) {
-                console.log("[YS2C] Creating Innertube instance...");
-                yt = yield Innertube.create();
-                console.log("[YS2C] Innertube ready");
+                log("Creating Innertube instance...");
+                // retrieve_player: false — only /next is used, so skip fetching and evaluating the player JS
+                yt = yield Innertube.create({ retrieve_player: false });
+                log("Innertube ready");
             }
             return yt;
         });
     }
+    /** Calls an Innertube endpoint and returns the raw, unparsed JSON response. */
+    function rawNext(innertube, payload) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const res = yield innertube.actions.execute("/next", Object.assign(Object.assign({}, payload), { parse: false }));
+            return (_a = res.data) !== null && _a !== void 0 ? _a : res;
+        });
+    }
+    /** Recursively finds the comment section's initial continuation token */
+    function findCommentSectionToken(node) {
+        var _a, _b, _c, _d, _e, _f;
+        if (!node || typeof node !== "object")
+            return null;
+        if (((_a = node.itemSectionRenderer) === null || _a === void 0 ? void 0 : _a.sectionIdentifier) === "comment-item-section") {
+            const t = (_f = (_e = (_d = (_c = (_b = node.itemSectionRenderer.contents) === null || _b === void 0 ? void 0 : _b[0]) === null || _c === void 0 ? void 0 : _c.continuationItemRenderer) === null || _d === void 0 ? void 0 : _d.continuationEndpoint) === null || _e === void 0 ? void 0 : _e.continuationCommand) === null || _f === void 0 ? void 0 : _f.token;
+            if (t)
+                return t;
+        }
+        for (const v of Array.isArray(node) ? node : Object.values(node)) {
+            const r = findCommentSectionToken(v);
+            if (r)
+                return r;
+        }
+        return null;
+    }
     /**
-     * Fetches the first page of comments for the given video, selects the best
+     * Finds the "next page of comments" token.
+     *
+     * A recursive search is wrong here: the continuationItemRenderer that expands a comment's replies
+     * looks identical (its trigger is ON_ITEM_SHOWN too), so depth-first hits that one first and
+     * paging turns into walking one thread's replies. The right token is always the last item of the
+     * comment list (BODY slot / append).
+     */
+    function findNextPageToken(page) {
+        var _a, _b, _c, _d, _e, _f;
+        for (const ep of (_a = page.onResponseReceivedEndpoints) !== null && _a !== void 0 ? _a : []) {
+            const reload = ep.reloadContinuationItemsCommand;
+            const items = (reload === null || reload === void 0 ? void 0 : reload.slot) === "RELOAD_CONTINUATION_SLOT_BODY"
+                ? reload.continuationItems
+                : (_b = ep.appendContinuationItemsAction) === null || _b === void 0 ? void 0 : _b.continuationItems;
+            if (!(items === null || items === void 0 ? void 0 : items.length))
+                continue;
+            const token = (_f = (_e = (_d = (_c = items[items.length - 1]) === null || _c === void 0 ? void 0 : _c.continuationItemRenderer) === null || _d === void 0 ? void 0 : _d.continuationEndpoint) === null || _e === void 0 ? void 0 : _e.continuationCommand) === null || _f === void 0 ? void 0 : _f.token;
+            if (token)
+                return token;
+        }
+        return null;
+    }
+    /**
+     * Fetches top-level comments as raw `/next` JSON.
+     *
+     * Deliberately not `innertube.getComments()`: youtubei.js 13.4.0's `CommentView.applyMutations`
+     * throws when `comment.avatar` is missing ("can't access property 'endpoint', comment.avatar is
+     * undefined"), intermittently on the very same video. Reading the text straight out of
+     * `entityBatchUpdate`'s `commentEntityPayload` bypasses the parser entirely. This mirrors what
+     * `test/fetch-video-data.mjs` does, so the runtime sees the same comments the regression suite
+     * measures against.
+     */
+    function fetchComments(innertube, videoId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+            const watch = yield rawNext(innertube, { videoId });
+            let token = findCommentSectionToken(watch);
+            const out = [];
+            for (let i = 0; i < COMMENT_PAGES && token; i++) {
+                const page = yield rawNext(innertube, { continuation: token });
+                const mutations = (_c = (_b = (_a = page.frameworkUpdates) === null || _a === void 0 ? void 0 : _a.entityBatchUpdate) === null || _b === void 0 ? void 0 : _b.mutations) !== null && _c !== void 0 ? _c : [];
+                for (const m of mutations) {
+                    const p = (_d = m.payload) === null || _d === void 0 ? void 0 : _d.commentEntityPayload;
+                    if (!p)
+                        continue;
+                    // replyLevel 0 = top-level comment; replies can't hold the setlist
+                    if ((_e = p.properties) === null || _e === void 0 ? void 0 : _e.replyLevel)
+                        continue;
+                    const text = (_h = (_g = (_f = p.properties) === null || _f === void 0 ? void 0 : _f.content) === null || _g === void 0 ? void 0 : _g.content) !== null && _h !== void 0 ? _h : "";
+                    out.push({
+                        id: (_k = (_j = p.properties) === null || _j === void 0 ? void 0 : _j.commentId) !== null && _k !== void 0 ? _k : `${videoId}#${out.length}`,
+                        text,
+                        timestampCount: countTimestamps(text),
+                    });
+                }
+                token = findNextPageToken(page);
+            }
+            return out;
+        });
+    }
+    /**
+     * Fetches the top-level comments for the given video, selects the best
      * setlist candidate using {@link activeCommentFindStrategy}, then parses it
      * into chapters using {@link activeChapterParseStrategy}.
      *
@@ -32197,30 +32329,18 @@
     function getChaptersFromComments(videoId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                console.log(`[YS2C] Fetching comments for video: ${videoId}`);
+                log(`Fetching comments for video: ${videoId}`);
                 const innertube = yield getInnertube();
-                const commentsPage = yield innertube.getComments(videoId);
-                const totalFetched = commentsPage.contents.length;
-                console.log(`[YS2C] Fetched ${totalFetched} comment(s), evaluating top ${Math.min(totalFetched, CANDIDATE_COUNT)}`);
-                const candidates = commentsPage.contents
-                    .slice(0, CANDIDATE_COUNT)
-                    .map(thread => {
-                    var _a, _b, _c, _d, _e;
-                    const text = (_c = (_b = (_a = thread.comment) === null || _a === void 0 ? void 0 : _a.content) === null || _b === void 0 ? void 0 : _b.toString()) !== null && _c !== void 0 ? _c : "";
-                    return {
-                        id: (_e = (_d = thread.comment) === null || _d === void 0 ? void 0 : _d.comment_id) !== null && _e !== void 0 ? _e : "",
-                        text,
-                        timestampCount: countTimestamps(text),
-                    };
-                });
-                console.debug("[YS2C] Candidates (id, timestampCount):", candidates.map(c => ({ id: c.id, timestampCount: c.timestampCount, preview: c.text.slice(0, 60).replace(/\n/g, "↵") })));
+                const candidates = yield fetchComments(innertube, videoId);
+                log(`Fetched ${candidates.length} top-level comment(s) across up to ${COMMENT_PAGES} page(s)`);
+                log("Candidates (id, timestampCount):", candidates.map(c => ({ id: c.id, timestampCount: c.timestampCount, preview: c.text.slice(0, 60).replace(/\n/g, "↵") })));
                 const target = activeCommentFindStrategy.find(candidates);
                 if (!target) {
-                    console.warn(`[YS2C] No qualifying comment found (strategy: "${activeCommentFindStrategy.name}"). None had enough timestamps.`);
+                    warn$1(`No qualifying comment found (strategy: "${activeCommentFindStrategy.name}"). None had enough timestamps.`);
                     return null;
                 }
-                console.log(`[YS2C] Selected comment ${target.id} with ${target.timestampCount} timestamp(s) (strategy: "${activeCommentFindStrategy.name}")`);
-                console.debug("[YS2C] Target comment text:\n", target.text);
+                log(`Selected comment ${target.id} with ${target.timestampCount} timestamp(s) (strategy: "${activeCommentFindStrategy.name}")`);
+                log("Target comment text:\n", target.text);
                 const chapters = [];
                 for (const line of target.text.split("\n")) {
                     const chapter = activeChapterParseStrategy.parseLine(line);
@@ -32228,14 +32348,14 @@
                         chapters.push(chapter);
                 }
                 if (chapters.length <= 1) {
-                    console.warn(`[YS2C] Parsed only ${chapters.length} chapter(s) from target comment — need at least 2. Aborting.`);
+                    warn$1(`Parsed only ${chapters.length} chapter(s) from target comment — need at least 2. Aborting.`);
                     return null;
                 }
-                console.log(`[YS2C] Successfully parsed ${chapters.length} chapters:`, chapters);
+                log(`Successfully parsed ${chapters.length} chapters:`, chapters);
                 return chapters;
             }
             catch (err) {
-                console.error("[YS2C] Failed to get chapters from comments:", err);
+                error$1("Failed to get chapters from comments:", err);
                 return null;
             }
         });
@@ -32259,7 +32379,7 @@
         currentContainer = null;
         currentTooltip === null || currentTooltip === void 0 ? void 0 : currentTooltip.remove();
         currentTooltip = null;
-        console.log("[YS2C] Chapter overlay removed");
+        log("Chapter overlay removed");
     }
     /**
      * Derives render segments from parsed chapters.
@@ -32288,7 +32408,7 @@
             const endSec = Math.min(rawEnd, nextStartSec, videoDuration);
             return { startSec, endSec, title: ch.title };
         });
-        console.log("[YS2C] Computed segments:", segments.map(s => `${s.title} [${s.startSec.toFixed(1)}s – ${s.endSec.toFixed(1)}s]`).join(", "));
+        log("Computed segments:", segments.map(s => `${s.title} [${s.startSec.toFixed(1)}s – ${s.endSec.toFixed(1)}s]`).join(", "));
         return segments;
     }
     function getOrCreateTooltip() {
@@ -32344,7 +32464,7 @@
             progressBar.removeEventListener("mousemove", onMouseMove);
             progressBar.removeEventListener("mouseleave", hideTooltip);
         };
-        console.log(`[YS2C] Injected ${segments.length} chapter segment(s) onto the progress bar`);
+        log(`Injected ${segments.length} chapter segment(s) onto the progress bar`);
     }
     function waitForElement(selector, timeoutMs = 8000) {
         const existing = document.querySelector(selector);
@@ -32361,7 +32481,7 @@
             observer.observe(document.body, { childList: true, subtree: true });
             setTimeout(() => {
                 observer.disconnect();
-                reject(new Error(`[YS2C] Timed out waiting for element: ${selector}`));
+                reject(new Error(`Timed out waiting for element: ${selector}`));
             }, timeoutMs);
         });
     }
@@ -32369,34 +32489,34 @@
         return __awaiter(this, void 0, void 0, function* () {
             if (chapters.length < 2)
                 return;
-            console.log("[YS2C] Waiting for progress bar...");
+            log("Waiting for progress bar...");
             let progressBar;
             try {
                 progressBar = yield waitForElement(PROGRESS_BAR_SEL);
             }
             catch (err) {
-                console.warn(err.message);
+                warn$1(err.message);
                 return;
             }
             const video = document.querySelector(VIDEO_SEL);
             if (!video) {
-                console.warn("[YS2C] Video element not found");
+                warn$1("Video element not found");
                 return;
             }
             const tryInject = () => {
                 const duration = video.duration;
                 if (!isFinite(duration) || duration <= 0) {
-                    console.warn("[YS2C] Video duration not ready:", duration);
+                    warn$1("Video duration not ready:", duration);
                     return;
                 }
-                console.log(`[YS2C] Video duration: ${duration}s — computing segments`);
+                log(`Video duration: ${duration}s — computing segments`);
                 const segments = computeSegments(chapters, duration);
                 injectSegments(progressBar, segments, duration);
             };
             if (video.readyState >= 1)
                 tryInject();
             else {
-                console.log("[YS2C] Waiting for video metadata...");
+                log("Waiting for video metadata...");
                 video.addEventListener("loadedmetadata", tryInject, { once: true });
             }
         });
@@ -32416,7 +32536,7 @@
     function run() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                console.log(`[YS2C] Initializing ${scriptInfo.name} v${scriptInfo.version} (#${buildNumber})...`);
+                log(`Initializing ${scriptInfo.name} v${scriptInfo.version} (#${buildNumber})...`);
                 // post-build these double quotes are replaced by backticks (because if backticks are used here, the bundler converts them to double quotes)
                 addStyle(`/* ── YouTube progress bar override ───────────────────────────────────────── */
 
@@ -32475,7 +32595,7 @@
                 initSetlistChapters();
             }
             catch (err) {
-                console.error("Fatal error:", err);
+                error$1("Fatal error:", err);
                 return;
             }
         });
@@ -32487,16 +32607,16 @@
         const handleNavigation = () => __awaiter(this, void 0, void 0, function* () {
             const videoId = getCurrentVideoId();
             if (!videoId) {
-                console.log("[YS2C] Not a watch page, skipping.");
+                log("Not a watch page, skipping.");
                 return;
             }
-            console.log(`[YS2C] Navigation detected → video: ${videoId}`);
+            log(`Navigation detected → video: ${videoId}`);
             removeOverlay();
             const chapters = yield getChaptersFromComments(videoId);
             if (chapters)
                 yield applyChapterOverlay(chapters);
         });
-        console.log("[YS2C] Attaching yt-navigate-finish listener");
+        log("Attaching yt-navigate-finish listener");
         // handle the page that's already loaded when the script runs
         handleNavigation();
         // handle subsequent SPA navigations
