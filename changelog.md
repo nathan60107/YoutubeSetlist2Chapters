@@ -1,3 +1,8 @@
+# 0.1.3
+- Read a second, later timestamp on the same line as the item's end, so ranges like `4:55~7:52` or `0:02:06 - 0:05:08  公然の秘密` mark a segment of the song's real length instead of an assumed four minutes. Whatever separates the two is never inspected, so any style works — 69 lines across 26 of the 143 test videos are written this way
+- Fix the second half of a range leaking into the chapter title, which labelled songs `~01:55:54` instead of their name
+- Treat two timestamps separated by nothing but whitespace as the same point written twice (`1:05:57 1:07:12 アスノヨゾラ哨戒班`): the segment starts at the first and the second is dropped rather than shown in the label
+
 # 0.1.2
 - Find the timestamp anywhere on the line instead of requiring it at the start, so a setlist parses no matter how it is laid out. This covers songs numbered `01.`, `①`, `1  . `, full-width `１` or `└` — 19% of setlists are written this way and none of them parsed before — as well as setlists that put the timestamp after the song name
 
