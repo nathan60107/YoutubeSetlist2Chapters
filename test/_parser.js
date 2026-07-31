@@ -11,9 +11,35 @@ var CHAPTER_PARSER = (function (exports) {
      * `10:00 シャルル`. Taking the first timestamp wherever it sits makes every prefix a non-issue.
      */
     const TIMESTAMP_RE = /\d{1,2}:\d{2}(?::\d{2})?/;
-    /** Strips common separator characters left behind on either side of the removed timestamp */
-    const LEADING_SEPARATOR_RE = /^[\s\-–—|•·:]+/;
+    /**
+     * YouTube custom emoji, written `:_name:` in comment text.
+     *
+     * Anchored on `:_` rather than `:...:`, which would also match across a title holding two ordinary
+     * colons and eat the text between them: `コッコロ(CV:M・A・O)、キャル(CV:` is a real dataset line.
+     */
+    const EMOJI_SHORTCODE_RE = /:_[^\s:]*:/g;
+    /**
+     * Strips separator characters left on either side of the removed timestamp. `\s` covers the
+     * full-width space these comments align columns with.
+     *
+     * Leading-only, and only before whitespace: `～` opens 54 title lines (`～ RE:I AM／Aimer`) but is
+     * also part of song names when it trails (`道は…続かせて～`).
+     */
+    const LEADING_SEPARATOR_RE = /^(?:[\s\-–—|•·:]|～(?=\s))+/;
     const TRAILING_SEPARATOR_RE = /[\s\-–—|•·:]+$/;
+    /**
+     * Cleans one side of the line: emoji shortcodes first, separators second. Reversed, the separator
+     * pass eats the shortcode's opening `:` and strands the rest as `_hotsmile:`.
+     *
+     * Both ends are stripped, not just the one facing the timestamp — removing a shortcode can expose
+     * whitespace at the far end too (`0:00 曲名 :_hotsmile:` leaves `曲名 `).
+     */
+    function cleanTitlePart(part) {
+        return part
+            .replace(EMOJI_SHORTCODE_RE, "")
+            .replace(LEADING_SEPARATOR_RE, "")
+            .replace(TRAILING_SEPARATOR_RE, "");
+    }
     function parseTimestampSec(ts) {
         const parts = ts.split(":").map(Number);
         return parts.length === 3
@@ -37,9 +63,13 @@ var CHAPTER_PARSER = (function (exports) {
      * text before the first one become the title. That ordering is what keeps a numbering prefix out
      * of the title: on `01. 0:00 Intro` both sides hold text, and the song name is the one on the right.
      *
+     * Whichever side wins is then cleaned by {@link cleanTitlePart}.
+     *
      * Example: "0:00 - Intro"      → { timestampSec: 0, title: "Intro" }
      *          "01. 0:00 Intro"    → { timestampSec: 0, title: "Intro" }
      *          "🎶 Intro 0:00"     → { timestampSec: 0, title: "🎶 Intro" }
+     *          "0:00 Intro:_hey:"  → { timestampSec: 0, title: "Intro" }
+     *          "0:00 :_hey:"       → null
      *          "4:55~7:52 Intro"   → { timestampSec: 295, endTimestampSec: 472, title: "Intro" }
      *          "10:00 10:10 Intro" → { timestampSec: 600, title: "Intro" }
      */
@@ -70,10 +100,10 @@ var CHAPTER_PARSER = (function (exports) {
                 : undefined;
             // Either way the trailing timestamp is skipped over — it never belongs in the title
             const consumedUntil = trailing ? afterStart + trailing.index + trailing[0].length : afterStart;
-            // No .trim() needed on either: the line is already trimmed, so the only end that can carry
-            // whitespace is the one facing the cut — which is exactly what each regex takes off
-            const after = trimmed.slice(consumedUntil).replace(LEADING_SEPARATOR_RE, "");
-            const before = trimmed.slice(0, start.index).replace(TRAILING_SEPARATOR_RE, "");
+            const after = cleanTitlePart(trimmed.slice(consumedUntil));
+            const before = cleanTitlePart(trimmed.slice(0, start.index));
+            // A line whose only text was emoji (`24:16     :_hotsmile:`) is left with nothing on either
+            // side, and drops out here rather than becoming a chapter with an empty or mangled title
             const title = after || before;
             if (!title)
                 return null;

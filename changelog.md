@@ -1,3 +1,7 @@
+# 0.1.4
+- Strip YouTube's custom emoji out of chapter titles, so a song reads `内秘心書` instead of `内秘心書:_hey:`. These render as `:_name:` shortcodes in the comment text and the separator cleanup used to bite off just the opening colon, leaving titles like `_hotsmile:` — 90 lines across 21 of the 143 test videos. Lines whose entire label was emoji no longer become chapters at all (74 of them)
+- Strip a leading `～ ` from chapter titles, so `～ RE:I AM／Aimer` reads as the song's name — 54 lines across 5 of the test videos. Only stripped when a space follows, so a `～` that is part of the name itself (`道は…続かせて～`) is left alone
+
 # 0.1.3
 - Read a second, later timestamp on the same line as the item's end, so ranges like `4:55~7:52` or `0:02:06 - 0:05:08  公然の秘密` mark a segment of the song's real length instead of an assumed four minutes. Whatever separates the two is never inspected, so any style works — 69 lines across 26 of the 143 test videos are written this way
 - Fix the second half of a range leaking into the chapter title, which labelled songs `~01:55:54` instead of their name
