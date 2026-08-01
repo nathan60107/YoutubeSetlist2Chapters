@@ -200,7 +200,6 @@
   }
 
   .tile.is-ok .tile-num { color: var(--ok); }
-  .tile.is-warn .tile-num { color: var(--warn); }
   .tile.is-bad .tile-num { color: var(--bad); }
 
   /* ---------- coverage bar ---------- */
@@ -435,6 +434,7 @@
     background: var(--ok);
   }
 
+  /* 沒有歌名的章節照樣是章節，跟解析成功的一樣畫成綠色；只有漏抓才變色 */
   .timeline i.miss { background: var(--bad); }
 
   .card-body {
@@ -483,8 +483,27 @@
   .lines .l-ok .gut { color: var(--ok); }
   .lines .l-miss { background: var(--bad-soft); border-radius: 3px; }
   .lines .l-miss .gut { color: var(--bad); }
+  /* 不列入計算的行：看得見，但不該搶走視線 */
+  .lines .l-skip { color: var(--ink-muted); }
   .lines .l-plain { color: var(--ink-faint); }
   .lines .txt { white-space: pre-wrap; word-break: break-word; }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem 0.9rem;
+    font-size: var(--step--1);
+    color: var(--ink-muted);
+  }
+
+  .legend .gut {
+    font-family: var(--mono);
+    margin-inline-end: 0.35em;
+  }
+
+  .legend .g-ok { color: var(--ok); }
+  .legend .g-miss { color: var(--bad); }
+  .legend .g-skip { color: var(--ink-faint); }
 
   .empty {
     padding: 2.5rem 1rem;
@@ -544,8 +563,14 @@
     <div class="eyebrow">YoutubeSetlist2Chapters · 測試資料集</div>
     <h1>歌枠 setlist 格式盤點</h1>
     <p class="lede">
-      141 部歌枠實際抓下的說明欄與留言。時間軸上每一格是一首歌：<span class="dot full"></span>綠色是現行
+      <span id="videoCount">…</span> 部歌枠實際抓下的說明欄與留言。時間軸上每一格是一首歌：<span class="dot full"></span>綠色是現行
       <code>chapterParser</code> 解析得出的章節，<span class="dot fail"></span>紅色是漏掉的。
+    </p>
+    <p class="lede">
+      判準只有一條：<b>這行本來就打算變成章節嗎？</b>只有時間戳、沒有歌名的行 ——
+      <code>24:16 :_hotsmile:</code>、獨自一行的 <code>1:08:56</code>、只剩豆腐的 <code>2:06:01 □□□□</code> ——
+      本來就沒東西可顯示，算不上漏抓，不列入分母。反過來說，解析出的標題只剩
+      <code>🎶</code> 這類符號也照樣算數：留言者沒寫歌名是正常的寫法，不是錯誤。
       點任一列展開逐行對照。
     </p>
   </header>
@@ -576,9 +601,11 @@
   <section class="list" id="list"></section>
 
   <footer>
-    資料由 <code>test/fetch-video-data.mjs</code> 抓取、<code>test/analyze-setlists.mjs</code> 判讀，
-    本頁由 <code>test/build-candidates-page.mjs</code> 產生。解析結果在瀏覽器端以與
-    <code>src/chapterParser.ts</code> 相同的規則即時重算。
+    資料由 <code>test/fetch-video-data.mjs</code> 抓取、<code>test/analyze-setlists.mjs</code> 判讀成
+    <code>test/_page-data.js</code>。解析結果在瀏覽器端即時重算，用的是
+    <code>npm run test-page</code> 從 <code>src/chapterParser.ts</code> 打包出來的
+    <code>test/_parser.js</code>，與正式程式碼同一份規則。「有沒有歌名」則是本頁自己的量測標準，
+    與 <code>test/regression.ts</code> 的 <code>UNTITLED_RE</code> 同一套。
   </footer>
 </div>
 
@@ -607,6 +634,32 @@
 
   /** 這行有時間戳但 parser 不收 —— 用來把「漏掉的行」跟「本來就不是 setlist 的行」分開 */
   const ANY_TIMESTAMP_RE = /(\d{1,3}):([0-5]?\d)(?::([0-5]\d))?/;
+  /** 判斷剩下什麼字時要扣掉「整行所有」時間戳：`4:55~7:52` 只扣第一個的話，殘留的 7:52 會被當成歌名 */
+  const ALL_TIMESTAMPS_RE = /(\d{1,3}):([0-5]?\d)(?::([0-5]\d))?/g;
+  /**
+   * 一律當成雜訊扣掉的東西：
+   *
+   *   `:_hotsmile:`  YouTube 自訂表情在留言原文裡的寫法，裡面的字母不是歌名
+   *   `□`            自訂表情被抽掉之後留下的豆腐（全資料集 32 個，清一色是整段方框）
+   *
+   * 兩者都是「表情原本在這裡」的殘骸，本身不帶任何資訊。src/chapterParser.ts 也把這兩種當雜訊剝掉，
+   * 所以整行只有它們的行根本不會產生章節；這裡跟著剝，是為了把那些行判成 skip 而不是 miss。
+   */
+  const NOISE_RE = /:_[^\s:]*:|□/g;
+
+  /**
+   * 只剩編號或裝飾符號，等於沒有歌名：`１`、`①`、`🎶`。
+   *
+   * 這是**量測用**的判定，跟 parser 的規則各自獨立 —— 這裡可以放心列舉符號，
+   * 列漏了頂多是這頁的指標偏樂觀，不會影響使用者看到的章節。
+   * 與 test/regression.ts 的 UNTITLED_RE 是同一份，改一邊記得改另一邊。
+   */
+  const UNTITLED_RE = /^[\s\d０-９①-⓿.．、,，:：;\-–—_|/｜•·└├─│~～*#+＋=☆★♡♥♪♫🎵🎶()（）［］[\]【】「」□■◆◇○●・｡｢｣ﾟﾞ]*$/u;
+
+  /** 這段文字扣掉時間戳與雜訊之後，還剩得下能當歌名的字嗎 */
+  function namesSomething(text) {
+    return !UNTITLED_RE.test(text.replace(NOISE_RE, " ").replace(ALL_TIMESTAMPS_RE, " "));
+  }
 
   function toSec(m) {
     return m[3] === undefined
@@ -615,10 +668,19 @@
   }
 
   /**
-   * 逐行判定：解析成功 / 有時間戳但解析失敗 / 非 setlist 行。
+   * 逐行判定。判準只有一條：這行本來就打算變成章節嗎？有歌名才算數。
+   *
+   *   ok    parser 給了章節。標題解析到只剩符號（`24:36 🎶`）也算 —— 留言者本來就沒寫歌名，
+   *         那是正常的寫法而不是錯誤，不另立一類、也不換顏色標出來
+   *   miss  有歌名卻沒解析出章節 —— 真正的漏抓，只有這一類算失分
+   *   skip  有時間戳、沒有歌名（`24:16 :_hotsmile:`、獨自一行的 `1:08:56`）。歌枠留言裡這種行很多，
+   *         留言者只是標了個時間點沒寫歌名；本來就沒東西可顯示，不列入分母也不算漏抓
+   *   plain 沒有（本場的）時間戳：空白行、裝飾線、被上一行當標題取走的歌名行，
+   *         以及時間戳超出影片長度的行 —— 那是留言裡的其他時間，不是這場的曲目
    *
    * parser 一次收下整份行陣列（歌名可能寫在時間戳的下一行），回傳的結果與輸入等長，
-   * 所以這裡仍能逐行對位；被上一行當標題取走的那行本身沒有時間戳，會落在 plain。
+   * 所以這裡仍能逐行對位。同理，判斷有沒有歌名時也要看下一行：時間戳自己一行、歌名寫在
+   * 下一行的排版一旦解析失敗，整組都得算漏抓，不能因為時間戳那行光禿禿就放過。
    */
   function analyse(video) {
     const raw = (video.text || "").split(/\r?\n/);
@@ -627,27 +689,46 @@
       const parsed = chapters[i];
       if (parsed) return { kind: "ok", line, sec: parsed.timestampSec, title: parsed.title };
       const m = line.match(ANY_TIMESTAMP_RE);
-      if (m && video.durationSec && toSec(m) <= video.durationSec * 1.02) {
-        return { kind: "miss", line, sec: toSec(m) };
-      }
-      if (m && !video.durationSec) return { kind: "miss", line, sec: toSec(m) };
-      return { kind: "plain", line };
+      const inRange = m && (!video.durationSec || toSec(m) <= video.durationSec * 1.02);
+      if (!inRange) return { kind: "plain", line };
+
+      const next = raw[i + 1];
+      const named =
+        namesSomething(line) ||
+        (next !== undefined && !ANY_TIMESTAMP_RE.test(next) && namesSomething(next));
+      return { kind: named ? "miss" : "skip", line, sec: toSec(m) };
     });
-    const ok = lines.filter((l) => l.kind === "ok").length;
-    const miss = lines.filter((l) => l.kind === "miss").length;
-    const expected = video.count || ok + miss;
+
+    const count = (kind) => lines.filter((l) => l.kind === kind).length;
+    const ok = count("ok");
+    const miss = count("miss");
+    const skip = count("skip");
+
+    // 分母是「該變成章節的行」，由本頁自己數出來，不用 analyze-setlists.mjs 的 count ——
+    // 那個數字把 skip 那些沒歌名的行也算進去，會讓解析率無論如何都到不了 100%
+    const expected = ok + miss;
     let status = "none";
     if (video.hasSetlist) {
       if (ok === 0) status = "fail";
-      else if (expected > 0 && ok / expected >= 0.9) status = "full";
+      else if (miss === 0) status = "full";
       else status = "part";
     }
-    return { lines, ok, miss, expected, status };
+    return { lines, ok, miss, skip, expected, status };
   }
 
   const videos = DATA.map((v) => ({ ...v, ...analyse(v) }));
 
   const STATUS_LABEL = { full: "完整解析", part: "部分解析", fail: "完全失敗", none: "無 setlist" };
+
+  /** 逐行對照的行首符號與說明，順序即圖例順序（見 analyse 的判準） */
+  const LINE_KINDS = [
+    { key: "ok", gut: "✓", label: "已解析成章節" },
+    { key: "miss", gut: "✗", label: "有歌名卻沒解析出章節" },
+    { key: "skip", gut: "–", label: "沒有歌名，不列入計算" },
+    { key: "plain", gut: "·", label: "非 setlist 行" },
+  ];
+  const KIND_BY_KEY = {};
+  for (const k of LINE_KINDS) KIND_BY_KEY[k.key] = k;
 
   const TRAITS = [
     { key: "prefix", label: "時間戳非行首", test: (v) => v.lineHead === false },
@@ -655,7 +736,7 @@
     { key: "mixed", label: "混合排版", test: (v) => v.shape && v.shape.indexOf("混合") === 0 },
     { key: "desc", label: "說明欄也有", test: (v) => v.descCount > 0 },
     { key: "descOnly", label: "只有說明欄", test: (v) => v.source === "desc" },
-    { key: "long", label: "40 首以上", test: (v) => v.count >= 40 },
+    { key: "long", label: "40 首以上", test: (v) => v.expected >= 40 },
   ];
 
   const SORTS = [
@@ -682,15 +763,19 @@
 
   function renderSummary() {
     const by = (s) => videos.filter((v) => v.status === s).length;
+    const sum = (k) => videos.reduce((n, v) => n + v[k], 0);
     const total = videos.length;
     const withSetlist = videos.filter((v) => v.hasSetlist).length;
     const full = by("full");
+    const missed = sum("miss");
+    el("videoCount").textContent = total;
     const tiles = [
       { num: total, label: "部歌枠", sub: "已抓取說明欄與留言" },
       { num: withSetlist, label: "部找得到 setlist", sub: Math.round((withSetlist / total) * 100) + "% 覆蓋" },
-      { num: full, label: "部完整解析", sub: Math.round((full / withSetlist) * 100) + "% 的 setlist", cls: "is-ok" },
-      { num: by("part") + by("fail"), label: "部待處理", sub: "部分或完全失敗", cls: "is-bad" },
-      { num: videos.reduce((n, v) => n + v.miss, 0), label: "首歌被漏掉", sub: "現行 parser", cls: "is-warn" },
+      { num: full, label: "部完整解析", sub: "一行都沒漏，" + Math.round((full / withSetlist) * 100) + "% 的 setlist", cls: "is-ok" },
+      { num: by("part") + by("fail"), label: "部待處理", sub: "有漏抓或完全失敗", cls: "is-bad" },
+      { num: missed, label: "首歌被漏掉", sub: "有歌名卻沒解析出章節", cls: missed > 0 ? "is-bad" : "is-ok" },
+      { num: sum("skip"), label: "行不列入計算", sub: "有時間戳、沒有歌名" },
     ];
     el("tiles").innerHTML = tiles
       .map(
@@ -772,17 +857,20 @@
     });
     const cmp = {
       status: (a, b) => RANK[a.status] - RANK[b.status] || b.miss - a.miss,
-      songs: (a, b) => b.count - a.count,
+      songs: (a, b) => b.expected - a.expected,
       missed: (a, b) => b.miss - a.miss,
       title: (a, b) => a.title.localeCompare(b.title, "ja"),
     }[state.sort];
     return out.sort(cmp);
   }
 
+  // skip 的行不畫：那些時間點本來就不打算變成章節，畫上去會讓時間軸看起來比實際密
+  const TICK_KINDS = ["ok", "miss"];
+
   function timelineHtml(v) {
     if (!v.durationSec) return "";
     const ticks = v.lines
-      .filter((l) => l.kind === "ok" || l.kind === "miss")
+      .filter((l) => TICK_KINDS.indexOf(l.kind) !== -1)
       .map((l) => {
         const pos = Math.max(0, Math.min(100, (l.sec / v.durationSec) * 100));
         return '<i class="' + (l.kind === "miss" ? "miss" : "") + '" style="left:' + pos.toFixed(2) + '%"></i>';
@@ -803,7 +891,7 @@
       '<div class="meta">' +
       '<span class="mono" style="color:var(--ink-faint)">' + v.id + "</span>" +
       '<span class="k">時長</span><span class="mono">' + fmtDur(v.durationSec) + "</span>" +
-      '<span class="k">歌曲</span><span class="mono">' + v.count + "</span>" +
+      '<span class="k">歌曲</span><span class="mono">' + v.expected + "</span>" +
       '<span class="k">解析</span><span class="mono">' + v.ok + " / " + v.expected + "</span>" +
       (v.descCount ? '<span class="k">說明欄</span><span class="mono">' + v.descCount + "</span>" : "") +
       tags.join("") +
@@ -823,13 +911,19 @@
       "<span>" + (v.source === "desc" ? "說明欄" : "留言：" + esc(v.author || "")) + "</span>" +
       (v.likes ? "<span>讚 " + esc(v.likes) + "</span>" : "") +
       "<span>漏抓 " + v.miss + " 行</span>" +
+      (v.skip ? "<span>不列入 " + v.skip + " 行</span>" : "") +
+      "</div>" +
+      '<div class="legend">' +
+      LINE_KINDS.filter((k) => k.key !== "plain")
+        .map((k) => '<span><span class="gut g-' + k.key + '">' + k.gut + "</span>" + k.label + "</span>")
+        .join("") +
       "</div>" +
       '<div class="lines">' +
       v.lines
         .map((l) => {
-          const cls = l.kind === "ok" ? "l-ok" : l.kind === "miss" ? "l-miss" : "l-plain";
-          const gut = l.kind === "ok" ? "✓" : l.kind === "miss" ? "✗" : "·";
-          return '<div class="' + cls + '"><span class="gut">' + gut + '</span><span class="txt">' + esc(l.line || " ") + "</span></div>";
+          const k = KIND_BY_KEY[l.kind];
+          return '<div class="l-' + l.kind + '"><span class="gut" title="' + k.label + '">' + k.gut +
+            '</span><span class="txt">' + esc(l.line || " ") + "</span></div>";
         })
         .join("") +
       "</div></div></article>"
