@@ -29,7 +29,7 @@ If you already have another userscript manager, just keep using it.
 
 ### Step 2: Install this script
 
-Not published on Greasy Fork yet — the install link will be added here with the first release.
+Open the [Greasy Fork page](https://greasyfork.org/scripts/589468-youtube-setlist-to-chapters) and press the green **Install this script** button. Your userscript manager opens a confirmation page — press **Install** there and you're done.
 
 You can also install the `.user.js` from this repo's `dist/` directly.
 

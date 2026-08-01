@@ -1,7 +1,9 @@
 # Greasy Fork 上架資訊
 
-> 🚧 **尚未上架**（預定首發版本 **0.1.6**）
-> 上架後回填：腳本頁面網址、安裝網址、上架日期，並把第 6 節的待辦打勾。
+> ✅ **已上架**（首發版本 **0.2.0**，2026-08-01）
+> 腳本頁面：<https://greasyfork.org/zh-TW/scripts/589468-youtube-setlist-to-chapters>
+> 安裝網址：<https://update.greasyfork.org/scripts/589468/YouTube%20Setlist%20to%20Chapters.user.js>
+> 腳本 ID：`589468`
 > 對應建置：`npm run build-prod-gf` → `dist/YouTubeSetlist2Chapters_gf.user.js`
 >
 > 之後每次更新版本：於腳本頁面的「更新程式碼」貼上新的 gf 建置，並填第 5 節的版本說明。
@@ -10,14 +12,16 @@
 
 ## 0. 上架前準備（每次更新版本沿用）
 
-- [ ] 確認 `package.json` 的 `version` 是要發佈的版本（目前 **0.1.6**）
+- [ ] 確認 `package.json` 的 `version` 是要發佈的版本（目前 **0.2.0**）
 - [ ] 重新執行 `npm run build-prod-gf`（`dist/` 內現有檔案的 build number 停在舊 commit，且 header 內的 icon URL 帶 commit SHA）
 - [ ] `npm run lint` 通過
 - [ ] 確認 `main` 分支已推上 GitHub —— header 內的 `@icon` / `@resource` 都指向 `raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg`，沒推上去圖示會 404
 
 > **關於 `@downloadURL` / `@updateURL`**：gf 版建置刻意不輸出這兩個 key。Greasy Fork 官方說明明確指出會移除它們——
 > 「Greasy Fork will strip these keys, which makes any script installed from Greasy Fork only update from Greasy Fork」——
-> 並在提供下載時注入自己的版本。上架後請於第 6 節實地驗證一次。
+> 並在提供下載時注入自己的版本。上架後實地驗證過，安裝檔的 header 帶的是 gf 自己的：
+> `@downloadURL https://update.greasyfork.org/scripts/589468/YouTube%20Setlist%20to%20Chapters.user.js`、
+> `@updateURL https://update.greasyfork.org/scripts/589468/YouTube%20Setlist%20to%20Chapters.meta.js`。
 
 ---
 
@@ -29,13 +33,15 @@ Greasy Fork 的**名稱、描述、適用網站、授權**都直接從中繼資�
 |------|-----|------|
 | Name | `YouTube Setlist to Chapters` | `@name`（另有 9 種語言的 `@name:<code>`，來源 `assets/meta-i18n.json`） |
 | Description | `Converts YouTube comment setlists into chapter markers on the YouTube player progress bar` | `@description`（另有 9 種語言） |
-| Version | `0.1.6` | `@version` |
+| Version | `0.2.0` | `@version` |
 | License | `MIT` | `@license` |
 | Applies to | `youtube.com` | `@match` |
 | Script language | JavaScript | — |
 | Additional info | 見下方第 2、3、4 節（英文為主要語言，另新增「中文（正體）」與「日本語」各一份） | — |
 
 實際貼上的原始碼：`dist/YouTubeSetlist2Chapters_gf.user.js` 全文。
+
+本地化名稱確認生效：`greasyfork.org/zh-TW/...` 顯示的是「YouTube 留言曲目單轉章節」而非英文原名。
 
 ### Greasy Fork 規則自查
 
@@ -178,7 +184,7 @@ If nothing appears, no comment on that video was recognised as a setlist.
 
 ## 5. 版本說明（Notes on this version）
 
-首次上架填：`Initial release on Greasy Fork (v0.1.6).`
+首次上架已填：`Initial release on Greasy Fork (v0.2.0).`
 
 之後每次更新，從 [changelog.md](../changelog.md) 取對應版本的條列貼上即可。
 
@@ -186,7 +192,6 @@ If nothing appears, no comment on that video was recognised as a setlist.
 
 ## 6. 上架後待辦
 
-- [ ] 記下腳本頁面網址，回填本檔開頭
-- [ ] 確認安裝檔內是 Greasy Fork 自己注入的 `@downloadURL` / `@updateURL`（下載安裝檔檢查 header）
-- [ ] 更新 [README.md](../README.md)、[README.zh-TW.md](../README.zh-TW.md)、[README.ja.md](../README.ja.md)「步驟 2」的安裝連結
-- [ ] 把腳本網址填進 GitHub repo 的 Website 欄位（見 [github.md](github.md)）
+- [x] 記下腳本頁面網址，回填本檔開頭
+- [x] 確認安裝檔內是 Greasy Fork 自己注入的 `@downloadURL` / `@updateURL`（下載安裝檔檢查 header）
+- [x] 更新 [README.md](../README.md)、[README.zh-TW.md](../README.zh-TW.md)、[README.ja.md](../README.ja.md)「步驟 2」的安裝連結

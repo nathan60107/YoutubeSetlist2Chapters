@@ -29,7 +29,7 @@
 
 ### 步驟 2：安裝本腳本
 
-尚未上架 Greasy Fork —— 首次發布時會把安裝連結補在這裡。
+打開 [Greasy Fork 腳本頁面](https://greasyfork.org/zh-TW/scripts/589468-youtube-setlist-to-chapters)，按下綠色的「安裝腳本」按鈕。接著使用者腳本管理器會跳出確認頁面，在那裡再按一次「安裝」就完成了。
 
 你也可以直接安裝本 repo 的 `dist/` 裡的 `.user.js`。
 
