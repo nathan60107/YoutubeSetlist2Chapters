@@ -1,6 +1,7 @@
 # GitHub 上架資訊（Repository + Release）
 
 > 平台：<https://github.com/nathan60107/YoutubeSetlist2Chapters>
+> 最新 release：**v0.2.0**（2026-08-01）<https://github.com/nathan60107/YoutubeSetlist2Chapters/releases/tag/v0.2.0>
 > 對應建置：`npm run build-prod-gh` → `dist/YouTubeSetlist2Chapters.user.js`
 > 這是「直接從 GitHub 安裝」的通道，同時也是 Greasy Fork 版的原始碼與問題回報來源。
 >
@@ -16,7 +17,7 @@
 - [ ] `npm run lint` 通過
 - [ ] `npm test` 通過（143 部影片的解析回歸測試）
 - [ ] `dist/*.user.js` 兩個檔案已 commit 並推上 `main`（`.gitignore` 已設定為只追蹤 `dist/*.user.js`）—— GitHub 安裝連結直接讀 `main` 上的這個檔案，沒推上去就等於沒發佈
-- [ ] 目前 repo 尚無任何 tag，這會是第一個 release
+- [ ] 新的 tag 尚未存在（`git tag` 確認），且 `main` 已推上去 —— tag 是以 `main` 當時的 HEAD 為準
 
 ---
 
@@ -91,4 +92,5 @@ gh release create v0.2.0 \
 ## 3. 上架後待辦
 
 - [x] Release notes 的 Greasy Fork 那一列補上實際連結
+- [x] v0.2.0 已發佈：tag 指向 `4de05f5`，兩個 `.user.js` 皆已附加，設為 latest
 - [ ] 後續每次發版：更新 `package.json` 版本 → `npm run build-prod` → 更新 `changelog.md` → commit + push → 開 tag/release → 更新 Greasy Fork 上的原始碼
