@@ -6,17 +6,39 @@
 
 ---
 
-**YouTube Setlist to Chapters** is a tool installable as a Tampermonkey / Violentmonkey userscript or a native browser extension.
+**YouTube Setlist to Chapters** turns the setlist someone posted in the comments into chapter markers on the YouTube progress bar.
 
-It automatically detects concert setlists posted in YouTube video comments and converts their timestamps and song names into chapter markers injected onto the YouTube player progress bar. This makes it easy to jump to any specific song in concert recordings, live performances, DJ sets, and similar videos.
+Singing streams and concerts almost never come with chapters, but there is nearly always a comment listing every song and the time it starts. This script finds that comment and draws it onto the progress bar, so you can see where each song sits and jump straight to the one you want.
 
 ## Features
 
-- **Auto-detection** — Analyzes comments to find the best matching setlist
-- **Multi-format parsing** — Supports common timestamp formats (`0:00`, `00:00`, `0:00:00`), ranges (`4:55~7:52`), numbered items (`01.`, `①`, `１`), a timestamp anywhere on the line, and setlists that write the song name on the line below its timestamp
-- **Chapter injection** — Displays parsed setlist as chapter markers on the YouTube player progress bar
-- **Manual selection** — Lets you manually pick a comment when auto-detection falls short
-- **Settings panel** — Customizable options (auto/manual mode, display preferences, etc.)
+- **Nothing to set up** — open a video and the chapters appear on their own; no account, no API key, no payment
+- **Finds the setlist in the comments** — the comment section is scanned and the one that best looks like a setlist is used, so videos the uploader never added chapters to work too
+- **Supports every format** — timestamps in any common form (`0:00`, `00:00`, `0:00:00`), ranges such as `4:55~7:52`, songs numbered `01.`, `①` or `１`, the timestamp placed anywhere on the line, and setlists that put the song name on the line below its timestamp
+- **Song names on hover** — point at a segment on the progress bar to see which song it is
+
+## Installation
+
+Two steps: first install a userscript manager, then install this script. Everything is free and takes about a minute.
+
+### Step 1: Install a userscript manager
+
+Go to the [Tampermonkey](https://www.tampermonkey.net/) site, pick the browser you use, and press the "Add to Chrome" (or equivalent) button. Once it's installed, a new icon appears in the top-right corner of your browser.
+
+If you already have another userscript manager, just keep using it.
+
+### Step 2: Install this script
+
+Not published on Greasy Fork yet — the install link will be added here with the first release.
+
+You can also install the `.user.js` from this repo's `dist/` directly.
+
+### Using it
+
+1. Open a singing stream or concert on YouTube
+2. Wait a moment — the comments are read and coloured segments appear on the progress bar, one per song
+3. Point at a segment to see the song's name, and click it to jump there
+4. If nothing appears, no comment on that video was recognised as a setlist
 
 ## Roadmap
 
@@ -24,19 +46,11 @@ Planned features and improvements:
 
 - **Respect official chapters** — do nothing when the video already has official (creator-provided) chapters
 - **Description parsing** — detect setlists from the video description, not just comments
+- **Manual selection** — pick the comment yourself when the automatic choice is wrong
+- **Settings panel** — switch the options above on and off
 - **Result caching** — remember the chosen setlist per video to avoid re-parsing
-- **Multi-language UI** — localized user interface
-
-## Installation
-
-> This project is currently under active development. Installation links will be added with the first release.
-
-| Platform | Link |
-|----------|------|
-| GreasyFork (Tampermonkey / Violentmonkey) | 🚧 In Development |
-| OpenUserJS (Tampermonkey / Violentmonkey) | 🚧 In Development |
-| Firefox Add-on | 🚧 In Development |
-| Chrome Extension | 🚧 In Development |
+- **Multi-language interface** — localized user interface
+- **Browser extension** — a packaged browser extension in addition to the userscript
 
 ## Development
 
