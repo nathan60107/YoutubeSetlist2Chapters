@@ -19,6 +19,12 @@ var CHAPTER_PARSER = (function (exports) {
      */
     const EMOJI_SHORTCODE_RE = /:_[^\s:]*:/g;
     /**
+     * The box left where a custom emoji used to be — `:_penlight:□:_penlight:` shows one sitting among
+     * the shortcodes that survived. Nothing the commenter typed, so it is stripped like a shortcode and
+     * `2:06:01 □□□□` drops out instead of putting four boxes on the progress bar.
+     */
+    const TOFU_RE = /□/g;
+    /**
      * Strips separator characters left on either side of the removed timestamp. `\s` covers the
      * full-width space these comments align columns with, but not the zero-width space U+200B.
      *
@@ -31,8 +37,8 @@ var CHAPTER_PARSER = (function (exports) {
     const LEADING_SEPARATOR_RE = /^(?:[\s\u200B\-–—|•·:└├]|～(?=\s))+/;
     const TRAILING_SEPARATOR_RE = /[\s\u200B\-–—|•·:]+$/;
     /**
-     * Cleans one side of the line: emoji shortcodes first, separators second. Reversed, the separator
-     * pass eats the shortcode's opening `:` and strands the rest as `_hotsmile:`.
+     * Cleans one side of the line: what the emoji left behind first, separators second. Reversed, the
+     * separator pass eats the shortcode's opening `:` and strands the rest as `_hotsmile:`.
      *
      * Both ends are stripped, not just the one facing the timestamp — removing a shortcode can expose
      * whitespace at the far end too (`0:00 曲名 :_hotsmile:` leaves `曲名 `).
@@ -40,6 +46,7 @@ var CHAPTER_PARSER = (function (exports) {
     function cleanTitlePart(part) {
         return part
             .replace(EMOJI_SHORTCODE_RE, "")
+            .replace(TOFU_RE, "")
             .replace(LEADING_SEPARATOR_RE, "")
             .replace(TRAILING_SEPARATOR_RE, "");
     }
@@ -153,8 +160,9 @@ var CHAPTER_PARSER = (function (exports) {
         // The line below is asked only when this one names nothing; `before` is still the fallback, so
         // a numbered line whose neighbour is unusable keeps its old title rather than losing the chapter
         //
-        // A line whose only text was emoji (`24:16     :_hotsmile:`) is left with nothing on any of the
-        // three, and drops out here rather than becoming a chapter with an empty or mangled title
+        // A line whose only text was an emoji, or the box left where one used to be (`24:16
+        // :_hotsmile:`, `1:58:41 □`), is left with nothing on any of the three, and drops out here
+        // rather than becoming a chapter with an empty or mangled title
         const title = after || titleFromNextLine(before, next) || before;
         if (!title)
             return null;

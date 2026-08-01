@@ -1,3 +1,6 @@
+# 0.1.6
+- Strip the replacement box left behind where a custom emoji used to be, so a line holding nothing else stops becoming a chapter labelled `□□□□` — 12 chapters across 5 of the 143 test videos were named this way
+
 # 0.1.5
 - Read the song's name from the line below its timestamp, so setlists written across two lines get real chapter labels instead of `１`, `２`, `３` — 16 chapters across 2 of the 143 test videos are laid out this way:
   ```
