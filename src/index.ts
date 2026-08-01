@@ -1,5 +1,6 @@
-import { initConfig } from "./config";
+import { config, initConfig } from "./config";
 import { buildNumber, scriptInfo } from "./constants";
+import { initI18n } from "./i18n";
 import { log, error } from "./log";
 import { initObservers } from "./observers";
 import { addStyle, domLoaded } from "./utils";
@@ -9,6 +10,7 @@ import { applyChapterOverlay, removeOverlay } from "./features/chapterOverlay";
 /** Runs when the userscript is loaded initially */
 async function init() {
   await initConfig();
+  initI18n(config.getData().language);
 
   if(domLoaded)
     run();

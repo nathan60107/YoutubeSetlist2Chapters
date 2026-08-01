@@ -1,5 +1,6 @@
 import { DataStore, compress, decompress } from "@sv443-network/userutils";
 import { compressionFormat } from "./constants";
+import { AUTO_LANG } from "./i18n";
 import type { ScriptConfig } from "./types";
 
 let canCompress: boolean | undefined;
@@ -7,7 +8,7 @@ let canCompress: boolean | undefined;
 export const config = new DataStore({
   id: "script-config",
   defaultData: {
-    // add data here
+    language: AUTO_LANG,
   } satisfies ScriptConfig,
   // increment this value if the data format changes:
   formatVersion: 1,

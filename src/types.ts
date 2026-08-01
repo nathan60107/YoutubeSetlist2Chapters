@@ -9,7 +9,11 @@ export type RollupArgs = Partial<{
 
 /** Configuration object for the script */
 export type ScriptConfig = {
-  // add data here
+  /**
+   * Interface language. Either `"auto"` (resolve from the browser's languages) or a supported locale
+   * code (`LangCode` from `i18n.ts`, e.g. `"en"`, `"zh-TW"`). Unknown values fall back to auto.
+   */
+  language: string;
 };
 
 /** A single chapter derived from a comment setlist */
