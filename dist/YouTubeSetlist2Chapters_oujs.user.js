@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name              YouTube Setlist to Chapters
 // @namespace         https://github.com/nathan60107/YoutubeSetlist2Chapters
-// @version           0.1.4
+// @version           0.1.5
 // @description       Converts YouTube comment setlists into chapter markers on the YouTube player progress bar
 // @homepageURL       https://github.com/nathan60107/YoutubeSetlist2Chapters#readme
 // @supportURL        https://github.com/nathan60107/YoutubeSetlist2Chapters/issues
 // @license           MIT
 // @author            nathan60107
 // @copyright         nathan60107 (https://github.com/nathan60107)
-// @icon              https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=abd06c9
+// @icon              https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=e2defe3
 // @match             *://www.youtube.com/watch*
 // @match             *://youtube.com/watch*
 // @run-at            document-start
@@ -23,7 +23,7 @@
 // @grant             GM.xmlHttpRequest
 // @grant             GM.openInTab
 // @noframes
-// @resource          img-icon https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=abd06c9
+// @resource          img-icon https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=e2defe3
 // @require           https://cdn.jsdelivr.net/npm/@sv443-network/userutils@6.3.0/dist/index.global.js
 // ==/UserScript==
 
@@ -79,7 +79,7 @@
         return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
     };
 
-    const buildNumberRaw = "abd06c9";
+    const buildNumberRaw = "e2defe3";
     /** The build number of the userscript */
     const buildNumber = (buildNumberRaw.match(/^#{{.+}}$/) ? "BUILD_ERROR!" : buildNumberRaw); // asserted as generic string instead of literal
     /** Default compression format used throughout the entire script */
@@ -32207,13 +32207,16 @@
     const EMOJI_SHORTCODE_RE = /:_[^\s:]*:/g;
     /**
      * Strips separator characters left on either side of the removed timestamp. `\s` covers the
-     * full-width space these comments align columns with.
+     * full-width space these comments align columns with, but not the zero-width space U+200B.
      *
      * Leading-only, and only before whitespace: `～` opens 54 title lines (`～ RE:I AM／Aimer`) but is
      * also part of song names when it trails (`道は…続かせて～`).
+     *
+     * `└` and `├` draw the branch that ties a title line to the timestamp line above it
+     * (`└ ロキ / Loki (みきとP)`), and unlike `～` they need no whitespace guard.
      */
-    const LEADING_SEPARATOR_RE = /^(?:[\s\-–—|•·:]|～(?=\s))+/;
-    const TRAILING_SEPARATOR_RE = /[\s\-–—|•·:]+$/;
+    const LEADING_SEPARATOR_RE = /^(?:[\s\u200B\-–—|•·:└├]|～(?=\s))+/;
+    const TRAILING_SEPARATOR_RE = /[\s\u200B\-–—|•·:]+$/;
     /**
      * Cleans one side of the line: emoji shortcodes first, separators second. Reversed, the separator
      * pass eats the shortcode's opening `:` and strands the rest as `_hotsmile:`.
@@ -32226,6 +32229,44 @@
             .replace(EMOJI_SHORTCODE_RE, "")
             .replace(LEADING_SEPARATOR_RE, "")
             .replace(TRAILING_SEPARATOR_RE, "");
+    }
+    /**
+     * Text that names nothing: the item's number and nothing else, in the widths and enclosed forms
+     * these comments use (`1`, `01.`, `１`, `①`).
+     *
+     * The enclosed numbers take two ranges because Unicode split them across two blocks. `①-⓿`
+     * (U+2460–U+24FF) is every enclosed form of 1 through 20 — `①`, `⑴`, `⒈`, `⓪` — and is left
+     * whole rather than narrowed to `①-⑳`, since a commenter reaching for any of them means the
+     * same thing. 21 through 50 were added later, in `㉑-㊿` (U+3251–U+32BF), and setlists do run
+     * past twenty songs.
+     *
+     * The one place the parser looks at numbering at all, and only to answer "does this line hold a
+     * title of its own?" — never to strip a prefix, which {@link TIMESTAMP_RE} is unanchored to avoid.
+     */
+    const NUMBERING_ONLY_RE = /^(?:[\d０-９]+|[①-⓿㉑-㊿])[.．、]?$/;
+    /**
+     * The title for a timestamp line that carries none itself, taken from the line below it
+     * (`１ 10:30~14:43` / `└ Mela!! / 緑黄色社会 (Ryokuoushoku Shakai) 🤍`).
+     *
+     * Gated on the line having nothing left but its number, not on "no text after the timestamp":
+     * `🎶 JOINT 00:03:09` also ends on its timestamp, and the line under it is the decorative
+     * `+☆+｡･ﾟ･` that separates the songs — 6 good titles would become 6 copies of that garland.
+     *
+     * The next line must carry no timestamp of its own, so a single-line setlist never eats its
+     * successor. Only that one line is read: a second would be the romanization
+     * (`├ "超" インフルエンサー→☆` / `└ (Chou Influencer)`), and the name alone reads better.
+     *
+     * Returns "" when the line is not that shape.
+     */
+    function titleFromNextLine(before, next) {
+        if (before && !NUMBERING_ONLY_RE.test(before))
+            return "";
+        if (next === undefined)
+            return "";
+        const trimmed = next.trim();
+        if (TIMESTAMP_RE.test(trimmed))
+            return "";
+        return cleanTitlePart(trimmed);
     }
     function parseTimestampSec(ts) {
         const parts = ts.split(":").map(Number);
@@ -32249,6 +32290,8 @@
      * The text after the last consumed timestamp is preferred, and only when there is none does the
      * text before the first one become the title. That ordering is what keeps a numbering prefix out
      * of the title: on `01. 0:00 Intro` both sides hold text, and the song name is the one on the right.
+     * When the line holds no title at all — only the item's number — {@link titleFromNextLine} looks
+     * one line down for it.
      *
      * Whichever side wins is then cleaned by {@link cleanTitlePart}.
      *
@@ -32259,46 +32302,53 @@
      *          "0:00 :_hey:"       → null
      *          "4:55~7:52 Intro"   → { timestampSec: 295, endTimestampSec: 472, title: "Intro" }
      *          "10:00 10:10 Intro" → { timestampSec: 600, title: "Intro" }
+     *          "1 0:00" + "└ Intro" → { timestampSec: 0, title: "Intro" }
      */
     const basicLineParseStrategy = {
         name: "basic",
-        parseLine(line) {
-            const trimmed = line.trim();
-            const start = TIMESTAMP_RE.exec(trimmed);
-            if (!start)
-                return null;
-            const startSec = parseTimestampSec(start[0]);
-            // Searched in the remainder rather than with a /g regex, so the module-level pattern stays
-            // stateless and `index` stays a plain number under the ES6 lib this project targets
-            const afterStart = start.index + start[0].length;
-            const rest = trimmed.slice(afterStart);
-            const second = TIMESTAMP_RE.exec(rest);
-            const secondSec = second ? parseTimestampSec(second[0]) : undefined;
-            // An earlier-or-equal second timestamp belongs to neither the item nor the parser: those are
-            // corrections and side notes (`53:07 サマータイムシンデレラ 52:43`), left in the title as written
-            const trailing = second && secondSec > startSec ? second : null;
-            // What sits between the two decides what the later one means. Any visible character makes it
-            // an end time, and the separator itself is never inspected — `4:55~7:52`, `0:00 - 3:45` and
-            // `10:30 → 14:43` are the same thing, so enumerating those would be another list to chase.
-            // Nothing but whitespace means one point written twice, and the second is simply dropped:
-            // `10:00 10:10 AAAA` is one segment starting at 10:00, titled `AAAA`.
-            const endTimestampSec = trailing && /\S/.test(rest.slice(0, trailing.index))
-                ? secondSec
-                : undefined;
-            // Either way the trailing timestamp is skipped over — it never belongs in the title
-            const consumedUntil = trailing ? afterStart + trailing.index + trailing[0].length : afterStart;
-            const after = cleanTitlePart(trimmed.slice(consumedUntil));
-            const before = cleanTitlePart(trimmed.slice(0, start.index));
-            // A line whose only text was emoji (`24:16     :_hotsmile:`) is left with nothing on either
-            // side, and drops out here rather than becoming a chapter with an empty or mangled title
-            const title = after || before;
-            if (!title)
-                return null;
-            return endTimestampSec !== undefined
-                ? { timestampSec: startSec, endTimestampSec, title }
-                : { timestampSec: startSec, title };
+        parseLines(lines) {
+            return lines.map((line, i) => parseLine(line, lines[i + 1]));
         },
     };
+    function parseLine(line, next) {
+        const trimmed = line.trim();
+        const start = TIMESTAMP_RE.exec(trimmed);
+        if (!start)
+            return null;
+        const startSec = parseTimestampSec(start[0]);
+        // Searched in the remainder rather than with a /g regex, so the module-level pattern stays
+        // stateless and `index` stays a plain number under the ES6 lib this project targets
+        const afterStart = start.index + start[0].length;
+        const rest = trimmed.slice(afterStart);
+        const second = TIMESTAMP_RE.exec(rest);
+        const secondSec = second ? parseTimestampSec(second[0]) : undefined;
+        // An earlier-or-equal second timestamp belongs to neither the item nor the parser: those are
+        // corrections and side notes (`53:07 サマータイムシンデレラ 52:43`), left in the title as written
+        const trailing = second && secondSec > startSec ? second : null;
+        // What sits between the two decides what the later one means. Any visible character makes it
+        // an end time, and the separator itself is never inspected — `4:55~7:52`, `0:00 - 3:45` and
+        // `10:30 → 14:43` are the same thing, so enumerating those would be another list to chase.
+        // Nothing but whitespace means one point written twice, and the second is simply dropped:
+        // `10:00 10:10 AAAA` is one segment starting at 10:00, titled `AAAA`.
+        const endTimestampSec = trailing && /\S/.test(rest.slice(0, trailing.index))
+            ? secondSec
+            : undefined;
+        // Either way the trailing timestamp is skipped over — it never belongs in the title
+        const consumedUntil = trailing ? afterStart + trailing.index + trailing[0].length : afterStart;
+        const after = cleanTitlePart(trimmed.slice(consumedUntil));
+        const before = cleanTitlePart(trimmed.slice(0, start.index));
+        // The line below is asked only when this one names nothing; `before` is still the fallback, so
+        // a numbered line whose neighbour is unusable keeps its old title rather than losing the chapter
+        //
+        // A line whose only text was emoji (`24:16     :_hotsmile:`) is left with nothing on any of the
+        // three, and drops out here rather than becoming a chapter with an empty or mangled title
+        const title = after || titleFromNextLine(before, next) || before;
+        if (!title)
+            return null;
+        return endTimestampSec !== undefined
+            ? { timestampSec: startSec, endTimestampSec, title }
+            : { timestampSec: startSec, title };
+    }
     const activeChapterParseStrategy = basicLineParseStrategy;
 
     /** How many comment pages to fetch (~20 comments each) — setlists are sometimes ranked far down */
@@ -32423,12 +32473,9 @@
                 }
                 log(`Selected comment ${target.id} with ${target.timestampCount} timestamp(s) (strategy: "${activeCommentFindStrategy.name}")`);
                 log("Target comment text:\n", target.text);
-                const chapters = [];
-                for (const line of target.text.split("\n")) {
-                    const chapter = activeChapterParseStrategy.parseLine(line);
-                    if (chapter)
-                        chapters.push(chapter);
-                }
+                const chapters = activeChapterParseStrategy
+                    .parseLines(target.text.split("\n"))
+                    .filter((c) => c !== null);
                 if (chapters.length <= 1) {
                     warn$1(`Parsed only ${chapters.length} chapter(s) from target comment — need at least 2. Aborting.`);
                     return null;

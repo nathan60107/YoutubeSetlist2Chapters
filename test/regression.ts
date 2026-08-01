@@ -6,9 +6,13 @@
  *   npm test -- --update-baseline --force # 資料集變動導致退步時，確認後強制更新
  *   npm test -- --list-failures           # 印出解析失敗的影片與原因
  *
- * 量兩件事：
+ * 量三件事：
  *   1. commentFinder 有沒有從幾十則留言裡挑中那則 setlist
  *   2. chapterParser 能從挑中的留言解析出多少章節
+ *   3. 這些章節裡有多少個標題真的是歌名（見 UNTITLED_RE）
+ *
+ * 第 3 項是因為只比章節數看不出標題品質：多行排版的 setlist 時間戳全部解析得出來，
+ * 標題卻是 `１`、`２`，9 章對 9 章照樣算 100%，改好改壞都看不見。
  *
  * 期望值來自 test/_analysis.json（由 analyze-setlists.mjs 產生），
  * 那份是人工抽樣核對過的 setlist 判讀結果。
@@ -18,7 +22,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { activeChapterParseStrategy } from "../src/chapterParser.js";
 import { activeCommentFindStrategy, countTimestamps } from "../src/commentFinder.js";
-import type { CommentCandidate } from "../src/types.js";
+import type { Chapter, CommentCandidate } from "../src/types.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(HERE, "data");
@@ -49,7 +53,19 @@ type Metrics = {
   partiallyParsed: number;
   /** 一個章節都解析不出來 */
   failed: number;
+  /** 所有影片合計解析出的章節數 */
+  chapters: number;
+  /** 其中標題沒有實質內容的（見 UNTITLED_RE），越少越好 */
+  untitled: number;
 };
+
+/**
+ * 標題只剩編號或裝飾符號，等於沒有標題：`１`、`①`、`🎶`、`□□□□`、`+☆+｡･ﾟ･`。
+ *
+ * 這是**量測用**的判定，跟 parser 的規則各自獨立 —— 這裡可以放心列舉符號，
+ * 列漏了頂多是這個指標偏樂觀，不會影響使用者看到的章節。
+ */
+const UNTITLED_RE = /^[\s\d０-９①-⓿.．、,，:：;\-–—_|/｜•·└├─│~～*#+＋=☆★♡♥♪♫🎵🎶()（）［］[\]【】「」□■◆◇○●・｡｢｣ﾟﾞ]*$/u;
 
 const analysisPath = join(HERE, "_analysis.json");
 if (!existsSync(analysisPath)) {
@@ -70,6 +86,8 @@ const metrics: Metrics = {
   fullyParsed: 0,
   partiallyParsed: 0,
   failed: 0,
+  chapters: 0,
+  untitled: 0,
 };
 
 type Failure = {
@@ -101,10 +119,12 @@ for (const file of files) {
   if (pickedRight) metrics.commentPicked++;
 
   const source = picked?.text ?? "";
-  const chapters = source
-    .split(/\r?\n/)
-    .map((line) => activeChapterParseStrategy.parseLine(line))
-    .filter((c) => c !== null);
+  const chapters = activeChapterParseStrategy
+    .parseLines(source.split(/\r?\n/))
+    .filter((c): c is Chapter => c !== null);
+
+  metrics.chapters += chapters.length;
+  metrics.untitled += chapters.filter((c) => UNTITLED_RE.test(c.title)).length;
 
   const target = expected.comment.count;
   const ratio = target === 0 ? 0 : chapters.length / target;
@@ -135,6 +155,7 @@ console.log(`commentFinder 挑中正確留言：${metrics.commentPicked} / ${met
 console.log(`chapterParser 完整解析：    ${metrics.fullyParsed} / ${metrics.withSetlist}  ${pct(metrics.fullyParsed, metrics.withSetlist)}`);
 console.log(`             部分解析：    ${metrics.partiallyParsed}`);
 console.log(`             完全失敗：    ${metrics.failed}`);
+console.log(`章節標題有實質內容：        ${metrics.chapters - metrics.untitled} / ${metrics.chapters}  ${pct(metrics.chapters - metrics.untitled, metrics.chapters)}`);
 
 if (process.argv.includes("--list-failures")) {
   console.log("\n--- 未完整解析的影片 ---");
@@ -152,7 +173,7 @@ function compare(base: Metrics) {
     if (metrics[key] < base[key]) regressions.push(`${key}: ${base[key]} → ${metrics[key]}`);
     else if (metrics[key] > base[key]) improvements.push(`${key}: ${base[key]} → ${metrics[key]}`);
   }
-  for (const key of ["failed", "partiallyParsed"] as const) {
+  for (const key of ["failed", "partiallyParsed", "untitled"] as const) {
     if (metrics[key] > base[key]) regressions.push(`${key}: ${base[key]} → ${metrics[key]}`);
     else if (metrics[key] < base[key]) improvements.push(`${key}: ${base[key]} → ${metrics[key]}`);
   }

@@ -13,7 +13,7 @@ It automatically detects concert setlists posted in YouTube video comments and c
 ## Features
 
 - **Auto-detection** — Analyzes comments to find the best matching setlist
-- **Multi-format parsing** — Supports common timestamp formats (`0:00`, `00:00`, `0:00:00`, etc.)
+- **Multi-format parsing** — Supports common timestamp formats (`0:00`, `00:00`, `0:00:00`), ranges (`4:55~7:52`), numbered items (`01.`, `①`, `１`), a timestamp anywhere on the line, and setlists that write the song name on the line below its timestamp
 - **Chapter injection** — Displays parsed setlist as chapter markers on the YouTube player progress bar
 - **Manual selection** — Lets you manually pick a comment when auto-detection falls short
 - **Settings panel** — Customizable options (auto/manual mode, display preferences, etc.)
@@ -24,7 +24,6 @@ Planned features and improvements:
 
 - **Respect official chapters** — do nothing when the video already has official (creator-provided) chapters
 - **Description parsing** — detect setlists from the video description, not just comments
-- **More format support** — handle additional setlist / timestamp styles and edge cases
 - **Result caching** — remember the chosen setlist per video to avoid re-parsing
 - **Multi-language UI** — localized user interface
 

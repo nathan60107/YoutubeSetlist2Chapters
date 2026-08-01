@@ -123,11 +123,9 @@ export async function getChaptersFromComments(videoId: string): Promise<Chapter[
     log(`Selected comment ${target.id} with ${target.timestampCount} timestamp(s) (strategy: "${activeCommentFindStrategy.name}")`);
     log("Target comment text:\n", target.text);
 
-    const chapters: Chapter[] = [];
-    for (const line of target.text.split("\n")) {
-      const chapter = activeChapterParseStrategy.parseLine(line);
-      if (chapter) chapters.push(chapter);
-    }
+    const chapters = activeChapterParseStrategy
+      .parseLines(target.text.split("\n"))
+      .filter((c): c is Chapter => c !== null);
 
     if (chapters.length <= 1) {
       warn(`Parsed only ${chapters.length} chapter(s) from target comment — need at least 2. Aborting.`);

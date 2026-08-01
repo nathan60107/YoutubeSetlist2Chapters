@@ -39,9 +39,8 @@ for (const file of files) {
 
   const picked = activeCommentFindStrategy.find(candidates);
   const source = picked?.text ?? "";
-  const chapters = source
-    .split(/\r?\n/)
-    .map((line) => activeChapterParseStrategy.parseLine(line))
+  const chapters = activeChapterParseStrategy
+    .parseLines(source.split(/\r?\n/))
     .filter((c) => c !== null);
 
   const target = expected.comment.count;

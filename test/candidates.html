@@ -603,7 +603,7 @@
       '<div class="empty">找不到 parser。請先執行 <code>npm run test-page</code> 產生 <code>test/_parser.js</code>。</div>';
     throw new Error("test/_parser.js 未產生");
   }
-  const parseLine = (line) => CHAPTER_PARSER.activeChapterParseStrategy.parseLine(line);
+  const parseLines = (lines) => CHAPTER_PARSER.activeChapterParseStrategy.parseLines(lines);
 
   /** 這行有時間戳但 parser 不收 —— 用來把「漏掉的行」跟「本來就不是 setlist 的行」分開 */
   const ANY_TIMESTAMP_RE = /(\d{1,3}):([0-5]?\d)(?::([0-5]\d))?/;
@@ -614,10 +614,17 @@
       : Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]);
   }
 
-  /** 逐行判定：解析成功 / 有時間戳但解析失敗 / 非 setlist 行 */
+  /**
+   * 逐行判定：解析成功 / 有時間戳但解析失敗 / 非 setlist 行。
+   *
+   * parser 一次收下整份行陣列（歌名可能寫在時間戳的下一行），回傳的結果與輸入等長，
+   * 所以這裡仍能逐行對位；被上一行當標題取走的那行本身沒有時間戳，會落在 plain。
+   */
   function analyse(video) {
-    const lines = (video.text || "").split(/\r?\n/).map((line) => {
-      const parsed = parseLine(line);
+    const raw = (video.text || "").split(/\r?\n/);
+    const chapters = parseLines(raw);
+    const lines = raw.map((line, i) => {
+      const parsed = chapters[i];
       if (parsed) return { kind: "ok", line, sec: parsed.timestampSec, title: parsed.title };
       const m = line.match(ANY_TIMESTAMP_RE);
       if (m && video.durationSec && toSec(m) <= video.durationSec * 1.02) {
