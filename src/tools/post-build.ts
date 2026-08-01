@@ -71,6 +71,9 @@ type BuildStats = {
   timestamp: number;
 };
 
+/** Per-locale userscript metadata, keyed by BCP-47 code, from `assets/meta-i18n.json`. */
+type MetaI18n = Record<string, { name?: string; description?: string }>;
+
 const buildTs = Date.now();
 /** Used to force the browser and userscript extension to refresh resources */
 const buildUuid = randomUUID();
@@ -95,13 +98,14 @@ const ringBell = Boolean(env.RING_BELL && (env.RING_BELL.length > 0 && env.RING_
 
   const resourcesDirectives = await getResourceDirectives(buildNbr);
   const requireDirectives = await getRequireDirectives();
+  const { nameDirectives, descriptionDirectives } = await getLocalizedMetaDirectives();
 
   const header = `\
 // ==UserScript==
-// @name              YouTube Setlist to Chapters
+// @name              YouTube Setlist to Chapters${nameDirectives ? "\n" + nameDirectives : ""}
 // @namespace         ${pkg.homepage}
 // @version           ${pkg.version}
-// @description       ${pkg.description}
+// @description       ${pkg.description}${descriptionDirectives ? "\n" + descriptionDirectives : ""}
 // @homepageURL       ${pkg.homepage}#readme
 // @supportURL        ${pkg.bugs.url}
 // @license           ${pkg.license}
@@ -271,6 +275,35 @@ async function getResourceDirectives(buildNbr: string) {
   }
   catch(err) {
     console.warn("No resource directives found:", err);
+  }
+}
+
+/**
+ * Reads `assets/meta-i18n.json` and returns localized `@name:<code>` / `@description:<code>` header
+ * directives (as two newline-joined blocks). Userscript managers show these when the browser UI
+ * language matches, and Greasy Fork reads them to list the script under each language; the base
+ * English `@name`/`@description` stay the default.
+ *
+ * Keys are padded to 18 so that, with the separating space, values land in the same column as the
+ * hand-written directives above. 18 is exactly the length of the longest key, `@description:pt-BR`.
+ */
+async function getLocalizedMetaDirectives() {
+  const empty = { nameDirectives: "", descriptionDirectives: "" };
+  try {
+    const meta = JSON.parse(String(await readFile(join(assetFolderPath, "meta-i18n.json")))) as MetaI18n;
+    const nameLines: string[] = [];
+    const descLines: string[] = [];
+    for(const [code, { name, description }] of Object.entries(meta)) {
+      if(name)
+        nameLines.push(`// ${`@name:${code}`.padEnd(18)} ${name}`);
+      if(description)
+        descLines.push(`// ${`@description:${code}`.padEnd(18)} ${description}`);
+    }
+    return { nameDirectives: nameLines.join("\n"), descriptionDirectives: descLines.join("\n") };
+  }
+  catch(err) {
+    console.warn("No localized metadata directives found:", err);
+    return empty;
   }
 }
 

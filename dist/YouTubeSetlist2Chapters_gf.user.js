@@ -1,19 +1,35 @@
 // ==UserScript==
 // @name              YouTube Setlist to Chapters
+// @name:zh-TW        YouTube 留言曲目單轉章節
+// @name:zh-CN        YouTube 评论曲目单转章节
+// @name:ja           YouTube セットリストをチャプターに
+// @name:ko           YouTube 셋리스트를 챕터로
+// @name:es           Setlist de YouTube a capítulos
+// @name:fr           Setlist YouTube en chapitres
+// @name:de           YouTube-Setlist zu Kapiteln
+// @name:pt-BR        Setlist do YouTube em capítulos
+// @name:ru           Сетлист YouTube в главы
 // @namespace         https://github.com/nathan60107/YoutubeSetlist2Chapters
-// @version           0.1.6
+// @version           0.2.0
 // @description       Converts YouTube comment setlists into chapter markers on the YouTube player progress bar
+// @description:zh-TW 把 YouTube 留言區的曲目單，變成播放器進度條上的章節標記
+// @description:zh-CN 把 YouTube 评论区的曲目单，变成播放器进度条上的章节标记
+// @description:ja    YouTube のコメント欄にあるセットリストを、プレイヤーのプログレスバー上のチャプターに変換します
+// @description:ko    YouTube 댓글의 셋리스트를 플레이어 재생 바의 챕터 마커로 변환합니다
+// @description:es    Convierte las setlists publicadas en los comentarios de YouTube en marcadores de capítulo sobre la barra de progreso del reproductor
+// @description:fr    Convertit les setlists publiées dans les commentaires YouTube en marqueurs de chapitre sur la barre de progression du lecteur
+// @description:de    Wandelt Setlists aus YouTube-Kommentaren in Kapitelmarken auf der Fortschrittsleiste des Players um
+// @description:pt-BR Converte as setlists publicadas nos comentários do YouTube em marcadores de capítulo na barra de progresso do player
+// @description:ru    Превращает сетлисты из комментариев YouTube в главы на полосе прогресса плеера
 // @homepageURL       https://github.com/nathan60107/YoutubeSetlist2Chapters#readme
 // @supportURL        https://github.com/nathan60107/YoutubeSetlist2Chapters/issues
 // @license           MIT
 // @author            nathan60107
 // @copyright         nathan60107 (https://github.com/nathan60107)
-// @icon              https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=d88e589
+// @icon              https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=cdd81e2
 // @match             *://www.youtube.com/watch*
 // @match             *://youtube.com/watch*
 // @run-at            document-start
-// @downloadURL       https://update.greasyfork.org/scripts/YOUR_SCRIPT_ID/YouTubeSetlist2Chapters.user.js
-// @updateURL         https://update.greasyfork.org/scripts/YOUR_SCRIPT_ID/YouTubeSetlist2Chapters.user.js
 // @connect           www.youtube.com
 // @connect           raw.githubusercontent.com
 // @grant             GM.getValue
@@ -23,7 +39,7 @@
 // @grant             GM.xmlHttpRequest
 // @grant             GM.openInTab
 // @noframes
-// @resource          img-icon https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=d88e589
+// @resource          img-icon https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=cdd81e2
 // @require           https://cdn.jsdelivr.net/npm/@sv443-network/userutils@6.3.0/dist/index.global.js
 // ==/UserScript==
 
@@ -79,7 +95,7 @@
         return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
     };
 
-    const buildNumberRaw = "d88e589";
+    const buildNumberRaw = "cdd81e2";
     /** The build number of the userscript */
     const buildNumber = (buildNumberRaw.match(/^#{{.+}}$/) ? "BUILD_ERROR!" : buildNumberRaw); // asserted as generic string instead of literal
     /** Default compression format used throughout the entire script */
@@ -104,11 +120,90 @@
         namespace: GM.info.script.namespace,
     };
 
+    /**
+     * Tiny i18n engine for the userscript.
+     *
+     * Strings live in per-locale dictionaries under `./locales`. English (`en`) is the reference: it
+     * defines every {@linkcode TranslationKey} and is the runtime fallback when the active locale is
+     * missing a key. The active locale is resolved once at startup ({@linkcode initI18n}) from the user's
+     * saved `config.language` (or, when that is `"auto"`, from the browser's languages).
+     *
+     * Rendering helpers:
+     * - {@linkcode t} — translate a key in the active locale (used everywhere outside the settings modal).
+     * - {@linkcode translate} — translate a key in an *explicit* locale, so the settings modal can preview
+     *   another language without committing to it until the user saves.
+     * - {@linkcode applyI18n} — fills every `[data-i18n*]` element under a root, so modal markup can be
+     *   built once with attributes and (re-)localized in one call when the previewed language changes.
+     */
+    /** The special config value meaning "pick the locale from the browser". */
+    const AUTO_LANG = "auto";
+    /**
+     * Locales offered in the settings dropdown, in display order, each labelled with its own endonym so a
+     * user can recognise their language regardless of the current interface language.
+     */
+    const supportedLanguages = [
+        { code: "en", label: "English" },
+        { code: "zh-TW", label: "繁體中文" },
+        { code: "zh-CN", label: "简体中文" },
+        { code: "ja", label: "日本語" },
+        { code: "ko", label: "한국어" },
+        { code: "es", label: "Español" },
+        { code: "fr", label: "Français" },
+        { code: "de", label: "Deutsch" },
+        { code: "pt-BR", label: "Português (BR)" },
+        { code: "ru", label: "Русский" },
+    ];
+    const langCodes = supportedLanguages.map(l => l.code);
+    /**
+     * Resolves a stored config language (`"auto"` or a specific code) to a concrete locale, matching the
+     * browser's preferred languages when set to auto. Falls back to English if nothing matches.
+     */
+    function resolveLanguage(configured) {
+        if (configured !== AUTO_LANG && langCodes.includes(configured))
+            return configured;
+        return matchBrowserLanguage();
+    }
+    /** Picks the best-supported locale from the browser's language preferences. */
+    function matchBrowserLanguage() {
+        const prefs = Array.isArray(navigator.languages) && navigator.languages.length > 0
+            ? navigator.languages
+            : [navigator.language];
+        for (const raw of prefs) {
+            const tag = raw === null || raw === void 0 ? void 0 : raw.trim();
+            if (!tag)
+                continue;
+            // Exact code match (case-insensitively), e.g. "pt-BR".
+            const exact = langCodes.find(c => c.toLowerCase() === tag.toLowerCase());
+            if (exact)
+                return exact;
+            // Chinese needs script/region disambiguation: Traditional (TW/HK/MO/Hant) vs. Simplified.
+            const lower = tag.toLowerCase();
+            if (lower.startsWith("zh"))
+                return /(^|-)(hant|tw|hk|mo)(-|$)/.test(lower) ? "zh-TW" : "zh-CN";
+            // Otherwise match on the primary subtag, e.g. "en-GB" -> "en", "pt-PT" -> "pt-BR".
+            const base = lower.split("-")[0];
+            const byBase = langCodes.find(c => c.split("-")[0] === base);
+            if (byBase)
+                return byBase;
+        }
+        return "en";
+    }
+    /** Sets the active locale used by {@linkcode t} and the default of {@linkcode applyI18n}. */
+    function setActiveLanguage(lang) {
+    }
+    /**
+     * Resolves the active locale from the given stored config value and applies it. Call once after the
+     * config DataStore has loaded, on every page the script runs on.
+     */
+    function initI18n(configuredLanguage) {
+        setActiveLanguage(resolveLanguage(configuredLanguage));
+    }
+
     let canCompress;
     const config = new userutils.DataStore({
         id: "script-config",
         defaultData: {
-        // add data here
+            language: AUTO_LANG,
         },
         // increment this value if the data format changes:
         formatVersion: 1,
@@ -32663,6 +32758,7 @@
     function init() {
         return __awaiter(this, void 0, void 0, function* () {
             yield initConfig();
+            initI18n(config.getData().language);
             if (domLoaded)
                 run();
             else

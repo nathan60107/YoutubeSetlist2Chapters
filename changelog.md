@@ -1,3 +1,6 @@
+# 0.2.0
+- Show the script's own name and description in the reader's language: the userscript header now carries them in 9 more languages (繁體中文, 简体中文, 日本語, 한국어, Español, Français, Deutsch, Português (BR), Русский), so the userscript manager and Greasy Fork no longer list the script in English only
+
 # 0.1.6
 - Strip the replacement box left behind where a custom emoji used to be, so a line holding nothing else stops becoming a chapter labelled `□□□□` — 12 chapters across 5 of the 143 test videos were named this way
 

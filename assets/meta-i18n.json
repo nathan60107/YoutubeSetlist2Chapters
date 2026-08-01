@@ -1,0 +1,38 @@
+{
+  "zh-TW": {
+    "name": "YouTube 留言曲目單轉章節",
+    "description": "把 YouTube 留言區的曲目單，變成播放器進度條上的章節標記"
+  },
+  "zh-CN": {
+    "name": "YouTube 评论曲目单转章节",
+    "description": "把 YouTube 评论区的曲目单，变成播放器进度条上的章节标记"
+  },
+  "ja": {
+    "name": "YouTube セットリストをチャプターに",
+    "description": "YouTube のコメント欄にあるセットリストを、プレイヤーのプログレスバー上のチャプターに変換します"
+  },
+  "ko": {
+    "name": "YouTube 셋리스트를 챕터로",
+    "description": "YouTube 댓글의 셋리스트를 플레이어 재생 바의 챕터 마커로 변환합니다"
+  },
+  "es": {
+    "name": "Setlist de YouTube a capítulos",
+    "description": "Convierte las setlists publicadas en los comentarios de YouTube en marcadores de capítulo sobre la barra de progreso del reproductor"
+  },
+  "fr": {
+    "name": "Setlist YouTube en chapitres",
+    "description": "Convertit les setlists publiées dans les commentaires YouTube en marqueurs de chapitre sur la barre de progression du lecteur"
+  },
+  "de": {
+    "name": "YouTube-Setlist zu Kapiteln",
+    "description": "Wandelt Setlists aus YouTube-Kommentaren in Kapitelmarken auf der Fortschrittsleiste des Players um"
+  },
+  "pt-BR": {
+    "name": "Setlist do YouTube em capítulos",
+    "description": "Converte as setlists publicadas nos comentários do YouTube em marcadores de capítulo na barra de progresso do player"
+  },
+  "ru": {
+    "name": "Сетлист YouTube в главы",
+    "description": "Превращает сетлисты из комментариев YouTube в главы на полосе прогресса плеера"
+  }
+}
