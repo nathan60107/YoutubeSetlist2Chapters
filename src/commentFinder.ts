@@ -13,7 +13,10 @@ export function countTimestamps(text: string): number {
   return (text.match(TIMESTAMP_RE) ?? []).length;
 }
 
-/** Picks the comment with the highest timestamp count (minimum 2 to qualify) */
+// The fewest timestamps a comment must hold to be read as a setlist.
+const MIN_TIMESTAMPS = 3;
+
+/** Picks the comment with the highest timestamp count ({@link MIN_TIMESTAMPS} to qualify) */
 const mostTimestampsStrategy: CommentFindStrategy = {
   name: "mostTimestamps",
   find(candidates) {
@@ -21,7 +24,7 @@ const mostTimestampsStrategy: CommentFindStrategy = {
     const best = candidates.reduce((prev, cur) =>
       cur.timestampCount > prev.timestampCount ? cur : prev
     );
-    return best.timestampCount >= 2 ? best : null;
+    return best.timestampCount >= MIN_TIMESTAMPS ? best : null;
   },
 };
 

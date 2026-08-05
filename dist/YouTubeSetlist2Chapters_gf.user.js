@@ -10,7 +10,7 @@
 // @name:pt-BR        Setlist do YouTube em capítulos
 // @name:ru           Сетлист YouTube в главы
 // @namespace         https://github.com/nathan60107/YoutubeSetlist2Chapters
-// @version           0.2.0
+// @version           0.2.1
 // @description       Converts YouTube comment setlists into chapter markers on the YouTube player progress bar
 // @description:zh-TW 把 YouTube 留言區的曲目單，變成播放器進度條上的章節標記
 // @description:zh-CN 把 YouTube 评论区的曲目单，变成播放器进度条上的章节标记
@@ -26,7 +26,7 @@
 // @license           MIT
 // @author            nathan60107
 // @copyright         nathan60107 (https://github.com/nathan60107)
-// @icon              https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=cdd81e2
+// @icon              https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=e0725af
 // @match             *://www.youtube.com/watch*
 // @match             *://youtube.com/watch*
 // @run-at            document-start
@@ -39,7 +39,7 @@
 // @grant             GM.xmlHttpRequest
 // @grant             GM.openInTab
 // @noframes
-// @resource          img-icon https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=cdd81e2
+// @resource          img-icon https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=e0725af
 // @require           https://cdn.jsdelivr.net/npm/@sv443-network/userutils@6.3.0/dist/index.global.js
 // ==/UserScript==
 
@@ -95,7 +95,7 @@
         return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
     };
 
-    const buildNumberRaw = "cdd81e2";
+    const buildNumberRaw = "e0725af";
     /** The build number of the userscript */
     const buildNumber = (buildNumberRaw.match(/^#{{.+}}$/) ? "BUILD_ERROR!" : buildNumberRaw); // asserted as generic string instead of literal
     /** Default compression format used throughout the entire script */
@@ -32272,14 +32272,16 @@
         var _a;
         return ((_a = text.match(TIMESTAMP_RE$1)) !== null && _a !== void 0 ? _a : []).length;
     }
-    /** Picks the comment with the highest timestamp count (minimum 2 to qualify) */
+    //The fewest timestamps a comment must hold to be read as a setlist.
+    const MIN_TIMESTAMPS = 3;
+    /** Picks the comment with the highest timestamp count ({@link MIN_TIMESTAMPS} to qualify) */
     const mostTimestampsStrategy = {
         name: "mostTimestamps",
         find(candidates) {
             if (candidates.length === 0)
                 return null;
             const best = candidates.reduce((prev, cur) => cur.timestampCount > prev.timestampCount ? cur : prev);
-            return best.timestampCount >= 2 ? best : null;
+            return best.timestampCount >= MIN_TIMESTAMPS ? best : null;
         },
     };
     const activeCommentFindStrategy = mostTimestampsStrategy;

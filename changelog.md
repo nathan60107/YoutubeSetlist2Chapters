@@ -1,3 +1,6 @@
+# 0.2.1
+- Require three timestamps in a comment before it is read as a setlist, up from two. Two is a count a single item can reach on its own — a range spends two on one song (`4:55~7:52 曲名`), and so does an ordinary comment pointing at a moment while replying to another — so those comments no longer put chapters on the progress bar. All 143 test videos still pick the same comment as before
+
 # 0.2.0
 - Show the script's own name and description in the reader's language: the userscript header now carries them in 9 more languages (繁體中文, 简体中文, 日本語, 한국어, Español, Français, Deutsch, Português (BR), Русский), so the userscript manager and Greasy Fork no longer list the script in English only
 
