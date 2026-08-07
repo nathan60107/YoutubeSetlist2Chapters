@@ -45,7 +45,6 @@ You can also install the `.user.js` from this repo's `dist/` directly.
 
 Planned features and improvements:
 
-- **Description parsing** — detect setlists from the video description, not just comments
 - **Manual selection** — pick the comment yourself when the automatic choice is wrong
 - **Settings panel** — switch the options above on and off
 - **Result caching** — remember the chosen setlist per video to avoid re-parsing
