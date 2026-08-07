@@ -14,6 +14,7 @@ Singing streams and concerts almost never come with chapters, but there is nearl
 
 - **Nothing to set up** — open a video and the chapters appear on their own; no account, no API key, no payment
 - **Finds the setlist in the comments** — the comment section is scanned and the one that best looks like a setlist is used, so videos the uploader never added chapters to work too
+- **Respects official chapters** — videos the creator chaptered themselves are left alone, so the progress bar stays with whoever knows the video best
 - **Supports every format** — timestamps in any common form (`0:00`, `00:00`, `0:00:00`), ranges such as `4:55~7:52`, songs numbered `01.`, `①` or `１`, the timestamp placed anywhere on the line, and setlists that put the song name on the line below its timestamp
 - **Song names on hover** — point at a segment on the progress bar to see which song it is
 
@@ -44,7 +45,6 @@ You can also install the `.user.js` from this repo's `dist/` directly.
 
 Planned features and improvements:
 
-- **Respect official chapters** — do nothing when the video already has official (creator-provided) chapters
 - **Description parsing** — detect setlists from the video description, not just comments
 - **Manual selection** — pick the comment yourself when the automatic choice is wrong
 - **Settings panel** — switch the options above on and off

@@ -34,3 +34,35 @@ export type CommentCandidate = {
   text: string;
   timestampCount: number;
 };
+
+/**
+ * A raw, unparsed `/next` response — the watch page fetched once per video and then read for both
+ * the official chapters and the comment section.
+ *
+ * youtubei.js has `IRawResponse`, but it bottoms out in `RawNode = Record<string, any>` and types
+ * `frameworkUpdates` as plain `any`, so it checks nothing. This describes the one path read
+ * straight off the response instead; the fields reached by walking the tree are left to the
+ * walkers, which take the node as it comes.
+ *
+ * Every field is optional — a branch that isn't there is a normal outcome (no comments on the
+ * video), not an error, and callers are written to fall through rather than throw.
+ */
+export type RawNextResponse = {
+  frameworkUpdates?: {
+    entityBatchUpdate?: {
+      mutations?: {
+        payload?: {
+          /** One top-level comment, arriving here rather than in the rendered tree */
+          commentEntityPayload?: {
+            properties?: {
+              commentId?: string;
+              /** Absent or 0 on a top-level comment; anything higher is a reply */
+              replyLevel?: number;
+              content?: { content?: string };
+            };
+          };
+        };
+      }[];
+    };
+  };
+};

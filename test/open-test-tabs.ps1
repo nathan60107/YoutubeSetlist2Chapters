@@ -19,7 +19,7 @@
     .\open-test-tabs.ps1 -Outcome failed -All   # 一次開完所有完全失敗的
     .\open-test-tabs.ps1 -Outcome partial -List # 只列出，不開瀏覽器
     .\open-test-tabs.ps1 -Reset                 # 進度歸零
-    .\open-test-tabs.ps1 -Ids 'dQw4w9WgXcQ'     # 指定影片，不動進度
+    .\open-test-tabs.ps1 -Ids 'dQw4w9WgXcQ'     # 指定影片（全部開），不動進度
 #>
 [CmdletBinding()]
 param(
@@ -28,7 +28,7 @@ param(
     [int]      $Count   = 10,
     [int]      $Skip    = -1,     # -1 = 沿用進度記錄
     [switch]   $All,              # 忽略 Count，一次開完
-    [string[]] $Ids,              # 指定影片，跳過清單產生
+    [string[]] $Ids,              # 指定影片，跳過清單產生；不另給 -Count 就全部開
     [int]      $Delay   = 1000,   # 每個分頁之間的間隔（毫秒），太短會漏開
     [switch]   $Refresh,          # 強制重新產生清單
     [switch]   $Reset,
@@ -102,7 +102,9 @@ if ($Skip -ge $videoIds.Count) {
     return
 }
 
-$take  = if ($All) { $videoIds.Count } else { $Count }
+# -Ids 是指名道姓要看哪幾部，分批沒有意義，所以預設全開；真要分批就明寫 -Count。
+$takeAll = $All -or ($Ids -and -not $PSBoundParameters.ContainsKey('Count'))
+$take  = if ($takeAll) { $videoIds.Count } else { $Count }
 $batch = $videoIds | Select-Object -Skip $Skip -First $take
 $to    = $Skip + $batch.Count
 

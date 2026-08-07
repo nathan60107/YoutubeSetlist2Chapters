@@ -1,8 +1,9 @@
 import { Innertube } from "youtubei.js";
 import { activeCommentFindStrategy, countTimestamps } from "../commentFinder";
 import { activeChapterParseStrategy } from "../chapterParser";
+import { hasOfficialChapters } from "../officialChapters";
 import { log, warn, error } from "../log";
-import type { Chapter, CommentCandidate } from "../types";
+import type { Chapter, CommentCandidate, RawNextResponse } from "../types";
 
 /** How many comment pages to fetch (~20 comments each) — setlists are sometimes ranked far down */
 const COMMENT_PAGES = 3;
@@ -20,7 +21,10 @@ async function getInnertube(): Promise<Innertube> {
 }
 
 /** Calls an Innertube endpoint and returns the raw, unparsed JSON response. */
-async function rawNext(innertube: Innertube, payload: Record<string, unknown>): Promise<any> {
+async function rawNext(
+  innertube: Innertube,
+  payload: Record<string, unknown>,
+): Promise<RawNextResponse> {
   const res: any = await innertube.actions.execute("/next", { ...payload, parse: false });
   return res.data ?? res;
 }
@@ -63,7 +67,7 @@ function findNextPageToken(page: any): string | null {
 }
 
 /**
- * Fetches top-level comments as raw `/next` JSON.
+ * Fetches top-level comments as raw `/next` JSON, paging on from the given watch response.
  *
  * Deliberately not `innertube.getComments()`: youtubei.js 13.4.0's `CommentView.applyMutations`
  * throws when `comment.avatar` is missing ("can't access property 'endpoint', comment.avatar is
@@ -72,8 +76,11 @@ function findNextPageToken(page: any): string | null {
  * `test/fetch-video-data.mjs` does, so the runtime sees the same comments the regression suite
  * measures against.
  */
-async function fetchComments(innertube: Innertube, videoId: string): Promise<CommentCandidate[]> {
-  const watch = await rawNext(innertube, { videoId });
+async function fetchComments(
+  innertube: Innertube,
+  watch: RawNextResponse,
+  videoId: string,
+): Promise<CommentCandidate[]> {
   let token = findCommentSectionToken(watch);
   const out: CommentCandidate[] = [];
 
@@ -102,14 +109,24 @@ async function fetchComments(innertube: Innertube, videoId: string): Promise<Com
  * setlist candidate using {@link activeCommentFindStrategy}, then parses it
  * into chapters using {@link activeChapterParseStrategy}.
  *
- * Returns null if no qualifying comment is found or parsing yields no chapters.
+ * Returns null if the creator already chaptered the video, if no qualifying
+ * comment is found, or if parsing yields no chapters.
  */
 export async function getChaptersFromComments(videoId: string): Promise<Chapter[] | null> {
   try {
     log(`Fetching comments for video: ${videoId}`);
 
     const innertube = await getInnertube();
-    const candidates = await fetchComments(innertube, videoId);
+    const watch = await rawNext(innertube, { videoId });
+
+    // The creator's chapters win: YouTube already draws them on the progress bar, so anything
+    // this script adds would only sit on top of a better-informed answer.
+    if (hasOfficialChapters(watch)) {
+      log("Video already carries official chapters — leaving the progress bar untouched");
+      return null;
+    }
+
+    const candidates = await fetchComments(innertube, watch, videoId);
 
     log(`Fetched ${candidates.length} top-level comment(s) across up to ${COMMENT_PAGES} page(s)`);
     log("Candidates (id, timestampCount):", candidates.map(c => ({ id: c.id, timestampCount: c.timestampCount, preview: c.text.slice(0, 60).replace(/\n/g, "↵") })));

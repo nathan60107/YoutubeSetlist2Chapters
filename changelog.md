@@ -1,3 +1,6 @@
+# 0.3.0
+- Leave the progress bar alone when the creator already chaptered the video with three or more chapters. YouTube draws those itself and the person who made the video knows it better than any comment, so a second set of markers on top of them only competes with a better answer — 13 of the 143 test videos are chaptered this way, each with 6 or more. Chapters YouTube generates on its own do not count, only the ones written into the description by the creator
+
 # 0.2.1
 - Require three timestamps in a comment before it is read as a setlist, up from two. Two is a count a single item can reach on its own — a range spends two on one song (`4:55~7:52 曲名`), and so does an ordinary comment pointing at a moment while replying to another — so those comments no longer put chapters on the progress bar. All 143 test videos still pick the same comment as before
 

@@ -10,7 +10,7 @@
 // @name:pt-BR        Setlist do YouTube em capítulos
 // @name:ru           Сетлист YouTube в главы
 // @namespace         https://github.com/nathan60107/YoutubeSetlist2Chapters
-// @version           0.2.1
+// @version           0.3.0
 // @description       Converts YouTube comment setlists into chapter markers on the YouTube player progress bar
 // @description:zh-TW 把 YouTube 留言區的曲目單，變成播放器進度條上的章節標記
 // @description:zh-CN 把 YouTube 评论区的曲目单，变成播放器进度条上的章节标记
@@ -26,7 +26,7 @@
 // @license           MIT
 // @author            nathan60107
 // @copyright         nathan60107 (https://github.com/nathan60107)
-// @icon              https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=e0725af
+// @icon              https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=43374c8
 // @match             *://www.youtube.com/watch*
 // @match             *://youtube.com/watch*
 // @run-at            document-start
@@ -41,7 +41,7 @@
 // @grant             GM.xmlHttpRequest
 // @grant             GM.openInTab
 // @noframes
-// @resource          img-icon https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=e0725af
+// @resource          img-icon https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=43374c8
 // @require           https://cdn.jsdelivr.net/npm/@sv443-network/userutils@6.3.0/dist/index.global.js
 // ==/UserScript==
 
@@ -97,7 +97,7 @@
         return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
     };
 
-    const buildNumberRaw = "e0725af";
+    const buildNumberRaw = "43374c8";
     /** The build number of the userscript */
     const buildNumber = (buildNumberRaw.match(/^#{{.+}}$/) ? "BUILD_ERROR!" : buildNumberRaw); // asserted as generic string instead of literal
     /** Default compression format used throughout the entire script */
@@ -32274,7 +32274,7 @@
         var _a;
         return ((_a = text.match(TIMESTAMP_RE$1)) !== null && _a !== void 0 ? _a : []).length;
     }
-    //The fewest timestamps a comment must hold to be read as a setlist.
+    // The fewest timestamps a comment must hold to be read as a setlist.
     const MIN_TIMESTAMPS = 3;
     /** Picks the comment with the highest timestamp count ({@link MIN_TIMESTAMPS} to qualify) */
     const mostTimestampsStrategy = {
@@ -32458,6 +32458,66 @@
     }
     const activeChapterParseStrategy = basicLineParseStrategy;
 
+    /**
+     * The fewest official chapters a video must carry before the script stands down.
+     *
+     * Unreachable as a rejection today: YouTube itself requires three timestamps before it will make
+     * chapters, so `DESCRIPTION_CHAPTERS` never holds one or two. Kept because the floor is this
+     * script's own position rather than a restatement of YouTube's — were that rule relaxed, a video
+     * marked only "Start" / "Ending" is still worth annotating from the comments.
+     *
+     * @see https://support.google.com/youtube/answer/9884579
+     */
+    const MIN_OFFICIAL_CHAPTERS = 3;
+    /**
+     * The creator's own chapters, written as timestamps in the description.
+     *
+     * `AUTO_CHAPTERS` sits in the same map but is YouTube's guess rather than the creator's work, so
+     * it is deliberately not counted — the point is to defer to a human who already did this job.
+     */
+    const CREATOR_CHAPTERS_KEY = "DESCRIPTION_CHAPTERS";
+    /**
+     * Finds the player bar's marker map in a raw `/next` response.
+     *
+     * Searched recursively rather than read from
+     * `playerOverlays.playerOverlayRenderer.decoratedPlayerBarRenderer.decoratedPlayerBarRenderer
+     * .playerBar.multiMarkersPlayerBarRenderer` — the renderer appears exactly once, so unlike the
+     * comment continuation tokens there is no wrong match to hit first, and the surrounding wrappers
+     * are the part YouTube reshuffles.
+     */
+    function findMarkersMap(node) {
+        var _a;
+        if (!node || typeof node !== "object")
+            return null;
+        const markers = (_a = node.multiMarkersPlayerBarRenderer) === null || _a === void 0 ? void 0 : _a.markersMap;
+        if (Array.isArray(markers))
+            return markers;
+        for (const v of Array.isArray(node) ? node : Object.values(node)) {
+            const r = findMarkersMap(v);
+            if (r)
+                return r;
+        }
+        return null;
+    }
+    /** Counts the chapters the creator placed on the video, per the raw `/next` watch response. */
+    function countOfficialChapters(watchResponse) {
+        var _a, _b, _c;
+        const markersMap = findMarkersMap(watchResponse);
+        if (!markersMap)
+            return 0;
+        const entry = markersMap.find(m => (m === null || m === void 0 ? void 0 : m.key) === CREATOR_CHAPTERS_KEY);
+        return (_c = (_b = (_a = entry === null || entry === void 0 ? void 0 : entry.value) === null || _a === void 0 ? void 0 : _a.chapters) === null || _b === void 0 ? void 0 : _b.length) !== null && _c !== void 0 ? _c : 0;
+    }
+    /**
+     * Whether the video already carries enough creator-provided chapters that the script should leave
+     * the progress bar alone.
+     */
+    function hasOfficialChapters(watchResponse) {
+        const count = countOfficialChapters(watchResponse);
+        log(`Official (creator-provided) chapters on this video: ${count}`);
+        return count >= MIN_OFFICIAL_CHAPTERS;
+    }
+
     /** How many comment pages to fetch (~20 comments each) — setlists are sometimes ranked far down */
     const COMMENT_PAGES = 3;
     let yt = null;
@@ -32521,7 +32581,7 @@
         return null;
     }
     /**
-     * Fetches top-level comments as raw `/next` JSON.
+     * Fetches top-level comments as raw `/next` JSON, paging on from the given watch response.
      *
      * Deliberately not `innertube.getComments()`: youtubei.js 13.4.0's `CommentView.applyMutations`
      * throws when `comment.avatar` is missing ("can't access property 'endpoint', comment.avatar is
@@ -32530,10 +32590,9 @@
      * `test/fetch-video-data.mjs` does, so the runtime sees the same comments the regression suite
      * measures against.
      */
-    function fetchComments(innertube, videoId) {
+    function fetchComments(innertube, watch, videoId) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
-            const watch = yield rawNext(innertube, { videoId });
             let token = findCommentSectionToken(watch);
             const out = [];
             for (let i = 0; i < COMMENT_PAGES && token; i++) {
@@ -32563,14 +32622,22 @@
      * setlist candidate using {@link activeCommentFindStrategy}, then parses it
      * into chapters using {@link activeChapterParseStrategy}.
      *
-     * Returns null if no qualifying comment is found or parsing yields no chapters.
+     * Returns null if the creator already chaptered the video, if no qualifying
+     * comment is found, or if parsing yields no chapters.
      */
     function getChaptersFromComments(videoId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 log(`Fetching comments for video: ${videoId}`);
                 const innertube = yield getInnertube();
-                const candidates = yield fetchComments(innertube, videoId);
+                const watch = yield rawNext(innertube, { videoId });
+                // The creator's chapters win: YouTube already draws them on the progress bar, so anything
+                // this script adds would only sit on top of a better-informed answer.
+                if (hasOfficialChapters(watch)) {
+                    log("Video already carries official chapters — leaving the progress bar untouched");
+                    return null;
+                }
+                const candidates = yield fetchComments(innertube, watch, videoId);
                 log(`Fetched ${candidates.length} top-level comment(s) across up to ${COMMENT_PAGES} page(s)`);
                 log("Candidates (id, timestampCount):", candidates.map(c => ({ id: c.id, timestampCount: c.timestampCount, preview: c.text.slice(0, 60).replace(/\n/g, "↵") })));
                 const target = activeCommentFindStrategy.find(candidates);
