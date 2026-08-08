@@ -9,9 +9,9 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { activeChapterParseStrategy } from "../src/chapterParser.js";
-import { activeCommentFindStrategy, countTimestamps } from "../src/commentFinder.js";
-import type { CommentCandidate } from "../src/types.js";
+import { parseChapters } from "../src/chapterParser.js";
+import { activeCommentFindStrategy } from "../src/commentFinder.js";
+import type { SetlistCandidate } from "../src/types.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(HERE, "data");
@@ -31,17 +31,15 @@ for (const file of files) {
   const expected = expectedById.get(fx.id);
   if (!expected?.comment) continue;
 
-  const candidates: CommentCandidate[] = fx.comments.map((c, i) => ({
+  const candidates: SetlistCandidate[] = fx.comments.map((c, i) => ({
     id: `${fx.id}#${i}`,
     text: c.text,
-    timestampCount: countTimestamps(c.text),
+    chapters: parseChapters(c.text),
   }));
 
   const picked = activeCommentFindStrategy.find(candidates);
   const source = picked?.text ?? "";
-  const chapters = activeChapterParseStrategy
-    .parseLines(source.split(/\r?\n/))
-    .filter((c) => c !== null);
+  const chapters = picked?.chapters ?? [];
 
   const target = expected.comment.count;
   const ratio = target === 0 ? 0 : chapters.length / target;

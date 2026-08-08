@@ -1,9 +1,10 @@
 import { Innertube } from "youtubei.js";
-import { activeCommentFindStrategy, countTimestamps } from "../commentFinder";
-import { activeChapterParseStrategy } from "../chapterParser";
+import { activeCommentFindStrategy } from "../commentFinder";
+import { parseChapters } from "../chapterParser";
 import { hasOfficialChapters } from "../officialChapters";
+import { getSetlistPick } from "../setlistPicks";
 import { log, warn, error } from "../log";
-import type { Chapter, CommentCandidate, RawNextResponse } from "../types";
+import type { CommentCandidate, RawNextResponse, SetlistCandidate } from "../types";
 
 /** How many comment pages to fetch (~20 comments each) — setlists are sometimes ranked far down */
 const COMMENT_PAGES = 3;
@@ -92,11 +93,9 @@ async function fetchComments(
       if (!p) continue;
       // replyLevel 0 = top-level comment; replies can't hold the setlist
       if (p.properties?.replyLevel) continue;
-      const text = p.properties?.content?.content ?? "";
       out.push({
         id: p.properties?.commentId ?? `${videoId}#${out.length}`,
-        text,
-        timestampCount: countTimestamps(text),
+        text: p.properties?.content?.content ?? "",
       });
     }
     token = findNextPageToken(page);
@@ -104,15 +103,51 @@ async function fetchComments(
   return out;
 }
 
+/** Everything a video offers as a setlist, and which of those is currently on the progress bar */
+export type SetlistLookup = {
+  /** Every comment that holds a setlist, in the order YouTube ranked them */
+  candidates: SetlistCandidate[];
+  /** The candidate whose chapters should be drawn, or null when the video offers none */
+  selected: SetlistCandidate | null;
+};
+
+const noSetlists: SetlistLookup = { candidates: [], selected: null };
+
 /**
- * Fetches the top-level comments for the given video, selects the best
- * setlist candidate using {@link activeCommentFindStrategy}, then parses it
- * into chapters using {@link activeChapterParseStrategy}.
+ * Decides which setlist to draw.
  *
- * Returns null if the creator already chaptered the video, if no qualifying
- * comment is found, or if parsing yields no chapters.
+ * A pick the user made on this video wins outright — it was made in front of the alternatives, so
+ * it is a better answer than any heuristic. Otherwise {@link activeCommentFindStrategy} chooses.
  */
-export async function getChaptersFromComments(videoId: string): Promise<Chapter[] | null> {
+function selectSetlist(candidates: SetlistCandidate[], videoId: string) {
+  const pickedId = getSetlistPick(videoId);
+  const picked = pickedId ? candidates.find(c => c.id === pickedId) : undefined;
+  if (picked) {
+    log(`Using the comment ${pickedId} remembered for this video (${picked.chapters.length} chapters)`);
+    return picked;
+  }
+  if (pickedId)
+    warn(`Remembered comment ${pickedId} is no longer among this video's setlists — falling back to "${activeCommentFindStrategy.name}"`);
+
+  const target = activeCommentFindStrategy.find(candidates);
+  if (!target) {
+    warn(`No qualifying comment found (strategy: "${activeCommentFindStrategy.name}"). None yielded enough chapters.`);
+    return null;
+  }
+
+  log(`Selected comment ${target.id} with ${target.chapters.length} chapters (strategy: "${activeCommentFindStrategy.name}")`);
+  return target;
+}
+
+/**
+ * Fetches the top-level comments for the given video and works out every setlist it offers, along
+ * with the one to draw — none at all if the creator already chaptered the video.
+ *
+ * Every comment is parsed, not just the winner, so the reader can be shown the alternatives and
+ * switch between them; what counts as a setlist is left entirely to
+ * {@link activeCommentFindStrategy}.
+ */
+export async function findSetlists(videoId: string): Promise<SetlistLookup> {
   try {
     log(`Fetching comments for video: ${videoId}`);
 
@@ -123,37 +158,26 @@ export async function getChaptersFromComments(videoId: string): Promise<Chapter[
     // this script adds would only sit on top of a better-informed answer.
     if (hasOfficialChapters(watch)) {
       log("Video already carries official chapters — leaving the progress bar untouched");
-      return null;
+      return noSetlists;
     }
 
-    const candidates = await fetchComments(innertube, watch, videoId);
+    const comments = await fetchComments(innertube, watch, videoId);
+    log(`Fetched ${comments.length} top-level comment(s) across up to ${COMMENT_PAGES} page(s)`);
 
-    log(`Fetched ${candidates.length} top-level comment(s) across up to ${COMMENT_PAGES} page(s)`);
-    log("Candidates (id, timestampCount):", candidates.map(c => ({ id: c.id, timestampCount: c.timestampCount, preview: c.text.slice(0, 60).replace(/\n/g, "↵") })));
+    const parsed: SetlistCandidate[] = comments.map(c => ({ ...c, chapters: parseChapters(c.text) }));
+    log("Comments (id, chapters):", parsed.map(c => ({ id: c.id, chapters: c.chapters.length, preview: c.text.slice(0, 60).replace(/\n/g, "↵") })));
 
-    const target = activeCommentFindStrategy.find(candidates);
-    if (!target) {
-      warn(`No qualifying comment found (strategy: "${activeCommentFindStrategy.name}"). None had enough timestamps.`);
-      return null;
-    }
+    const candidates = parsed.filter(c => activeCommentFindStrategy.qualifies(c));
+    log(`${candidates.length} comment(s) hold a setlist:`, candidates.map(c => `${c.id} → ${c.chapters.length} chapters`));
 
-    log(`Selected comment ${target.id} with ${target.timestampCount} timestamp(s) (strategy: "${activeCommentFindStrategy.name}")`);
-    log("Target comment text:\n", target.text);
+    const selected = selectSetlist(candidates, videoId);
+    if (selected)
+      log(`Drawing ${selected.chapters.length} chapters from comment ${selected.id}:`, selected.chapters);
 
-    const chapters = activeChapterParseStrategy
-      .parseLines(target.text.split("\n"))
-      .filter((c): c is Chapter => c !== null);
-
-    if (chapters.length <= 1) {
-      warn(`Parsed only ${chapters.length} chapter(s) from target comment — need at least 2. Aborting.`);
-      return null;
-    }
-
-    log(`Successfully parsed ${chapters.length} chapters:`, chapters);
-    return chapters;
+    return { candidates, selected };
   }
   catch (err) {
     error("Failed to get chapters from comments:", err);
-    return null;
+    return noSetlists;
   }
 }

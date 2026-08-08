@@ -19,7 +19,7 @@ export type ChapterParseStrategy = {
  * prefixes is a losing game and a stripper for them risks eating the hour out of a plain
  * `10:00 シャルル`. Taking the first timestamp wherever it sits makes every prefix a non-issue.
  */
-const TIMESTAMP_RE = /\d{1,2}:\d{2}(?::\d{2})?/;
+export const TIMESTAMP_RE = /\d{1,2}:\d{2}(?::\d{2})?/;
 
 /**
  * YouTube custom emoji, written `:_name:` in comment text.
@@ -191,3 +191,15 @@ function parseLine(line: string, next: string | undefined): Chapter | null {
 }
 
 export const activeChapterParseStrategy: ChapterParseStrategy = basicLineParseStrategy;
+
+/**
+ * Parses a whole comment into the chapters it holds, dropping the lines that yielded none.
+ *
+ * The single place a comment is split into lines, so the runtime and the regression suite read one
+ * the same way. `\r\n` is what 47 of the 143 test videos' comments arrive with.
+ */
+export function parseChapters(text: string): Chapter[] {
+  return activeChapterParseStrategy
+    .parseLines(text.split(/\r?\n/))
+    .filter((c): c is Chapter => c !== null);
+}

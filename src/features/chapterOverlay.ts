@@ -1,5 +1,6 @@
 import "./chapterOverlay.css";
 import { log, warn } from "../log";
+import { waitForElement } from "../utils";
 import type { Chapter } from "../types";
 
 const PROGRESS_BAR_SEL = ".ytp-progress-bar";
@@ -141,30 +142,7 @@ function injectSegments(
   log(`Injected ${segments.length} chapter segment(s) onto the progress bar`);
 }
 
-function waitForElement<T extends Element>(selector: string, timeoutMs = 8_000): Promise<T> {
-  const existing = document.querySelector<T>(selector);
-  if (existing) return Promise.resolve(existing);
-
-  return new Promise((resolve, reject) => {
-    const observer = new MutationObserver(() => {
-      const el = document.querySelector<T>(selector);
-      if (el) {
-        observer.disconnect();
-        resolve(el);
-      }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    setTimeout(() => {
-      observer.disconnect();
-      reject(new Error(`Timed out waiting for element: ${selector}`));
-    }, timeoutMs);
-  });
-}
-
 export async function applyChapterOverlay(chapters: Chapter[]): Promise<void> {
-  if (chapters.length < 2) return;
-
   log("Waiting for progress bar...");
 
   let progressBar: HTMLElement;

@@ -1,31 +1,35 @@
-import type { CommentCandidate } from "./types";
+import type { SetlistCandidate } from "./types";
 
 export type CommentFindStrategy = {
   name: string;
+  /** Whether a comment holds a setlist at all */
+  qualifies(candidate: SetlistCandidate): boolean;
   /** Picks the best candidate from a list, or returns null if none qualifies */
-  find(candidates: CommentCandidate[]): CommentCandidate | null;
+  find(candidates: SetlistCandidate[]): SetlistCandidate | null;
 };
 
-const TIMESTAMP_RE = /\d{1,2}:\d{2}(?::\d{2})?/g;
+/**
+ * The fewest songs a comment must yield to be read as a setlist.
+ *
+ * Counted on parsed chapters, not timestamps in the text, so one song is one song however it was
+ * written — a range (`4:55~7:52 曲名`) spends two timestamps on one. Three is also a count no
+ * ordinary comment reaches by accident: a reply pointing at a moment or two stays under it.
+ */
+const MIN_CHAPTERS = 3;
 
-/** Counts timestamp-like patterns (e.g. 0:00, 1:23:45) in a string */
-export function countTimestamps(text: string): number {
-  return (text.match(TIMESTAMP_RE) ?? []).length;
-}
+const isSetlist = (candidate: SetlistCandidate) => candidate.chapters.length >= MIN_CHAPTERS;
 
-// The fewest timestamps a comment must hold to be read as a setlist.
-const MIN_TIMESTAMPS = 3;
-
-/** Picks the comment with the highest timestamp count ({@link MIN_TIMESTAMPS} to qualify) */
-const mostTimestampsStrategy: CommentFindStrategy = {
-  name: "mostTimestamps",
+/** Picks the comment that yielded the most chapters ({@link MIN_CHAPTERS} to qualify) */
+const mostChaptersStrategy: CommentFindStrategy = {
+  name: "mostChapters",
+  qualifies: isSetlist,
   find(candidates) {
     if (candidates.length === 0) return null;
     const best = candidates.reduce((prev, cur) =>
-      cur.timestampCount > prev.timestampCount ? cur : prev
+      cur.chapters.length > prev.chapters.length ? cur : prev
     );
-    return best.timestampCount >= MIN_TIMESTAMPS ? best : null;
+    return isSetlist(best) ? best : null;
   },
 };
 
-export const activeCommentFindStrategy: CommentFindStrategy = mostTimestampsStrategy;
+export const activeCommentFindStrategy: CommentFindStrategy = mostChaptersStrategy;

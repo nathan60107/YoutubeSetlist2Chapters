@@ -171,8 +171,21 @@ var CHAPTER_PARSER = (function (exports) {
             : { timestampSec: startSec, title };
     }
     const activeChapterParseStrategy = basicLineParseStrategy;
+    /**
+     * Parses a whole comment into the chapters it holds, dropping the lines that yielded none.
+     *
+     * The single place a comment is split into lines, so the runtime and the regression suite read one
+     * the same way. `\r\n` is what 47 of the 143 test videos' comments arrive with.
+     */
+    function parseChapters(text) {
+        return activeChapterParseStrategy
+            .parseLines(text.split(/\r?\n/))
+            .filter((c) => c !== null);
+    }
 
+    exports.TIMESTAMP_RE = TIMESTAMP_RE;
     exports.activeChapterParseStrategy = activeChapterParseStrategy;
+    exports.parseChapters = parseChapters;
 
     return exports;
 

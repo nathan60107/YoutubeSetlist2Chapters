@@ -10,7 +10,7 @@
 // @name:pt-BR        Setlist do YouTube em capítulos
 // @name:ru           Сетлист YouTube в главы
 // @namespace         https://github.com/nathan60107/YoutubeSetlist2Chapters
-// @version           0.3.0
+// @version           0.4.0
 // @description       Converts YouTube comment setlists into chapter markers on the YouTube player progress bar
 // @description:zh-TW 把 YouTube 留言區的曲目單，變成播放器進度條上的章節標記
 // @description:zh-CN 把 YouTube 评论区的曲目单，变成播放器进度条上的章节标记
@@ -26,7 +26,7 @@
 // @license           MIT
 // @author            nathan60107
 // @copyright         nathan60107 (https://github.com/nathan60107)
-// @icon              https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=43374c8
+// @icon              https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=66b8315
 // @match             *://www.youtube.com/watch*
 // @match             *://youtube.com/watch*
 // @run-at            document-start
@@ -39,7 +39,7 @@
 // @grant             GM.xmlHttpRequest
 // @grant             GM.openInTab
 // @noframes
-// @resource          img-icon https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=43374c8
+// @resource          img-icon https://raw.githubusercontent.com/nathan60107/YoutubeSetlist2Chapters/main/assets/icon.svg?b=66b8315
 // @require           https://cdn.jsdelivr.net/npm/@sv443-network/userutils@6.3.0/dist/index.global.js
 // ==/UserScript==
 
@@ -95,7 +95,7 @@
         return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
     };
 
-    const buildNumberRaw = "43374c8";
+    const buildNumberRaw = "66b8315";
     /** The build number of the userscript */
     const buildNumber = (buildNumberRaw.match(/^#{{.+}}$/) ? "BUILD_ERROR!" : buildNumberRaw); // asserted as generic string instead of literal
     /** Default compression format used throughout the entire script */
@@ -121,6 +121,89 @@
     };
 
     /**
+     * English locale — the reference dictionary.
+     *
+     * Its keys define the {@linkcode TranslationKey} union that every other locale must satisfy, and its
+     * values are the runtime fallback used whenever an active locale is missing a key. When you add a new
+     * user-facing string, add it here first; TypeScript will then flag it as missing in the other locales.
+     *
+     * Values may contain trusted inline HTML (e.g. `<code>…</code>`) — they are our own constants, never
+     * user input, and are injected through the Trusted Types policy. `%1`, `%2`, … are positional
+     * placeholders replaced by {@linkcode t} arguments.
+     */
+    const en = {
+        /** Button on a comment whose setlist is not the one being drawn */
+        "picker.use": "Use this setlist",
+        /** Same button on the comment whose setlist is currently on the progress bar */
+        "picker.inUse": "Setlist in use",
+        /** Tooltip on both, %1 being how many chapters that comment yields */
+        "picker.chapterCount": "%1 chapters from this comment",
+    };
+
+    /** 繁體中文 (Traditional Chinese). */
+    const zhTW = {
+        "picker.use": "改用這則曲目單",
+        "picker.inUse": "使用中的曲目單",
+        "picker.chapterCount": "這則留言可產生 %1 個章節",
+    };
+
+    /** 简体中文 (Simplified Chinese). */
+    const zhCN = {
+        "picker.use": "改用这则曲目单",
+        "picker.inUse": "使用中的曲目单",
+        "picker.chapterCount": "这则评论可生成 %1 个章节",
+    };
+
+    /** 日本語 (Japanese). */
+    const ja = {
+        "picker.use": "このセットリストを使う",
+        "picker.inUse": "使用中のセットリスト",
+        "picker.chapterCount": "このコメントから %1 個のチャプター",
+    };
+
+    /** 한국어 (Korean). */
+    const ko = {
+        "picker.use": "이 셋리스트 사용",
+        "picker.inUse": "사용 중인 셋리스트",
+        "picker.chapterCount": "이 댓글에서 챕터 %1개",
+    };
+
+    /** Español (Spanish). */
+    const es = {
+        "picker.use": "Usar esta lista",
+        "picker.inUse": "Lista en uso",
+        "picker.chapterCount": "%1 capítulos de este comentario",
+    };
+
+    /** Français (French). */
+    const fr = {
+        "picker.use": "Utiliser cette setlist",
+        "picker.inUse": "Setlist utilisée",
+        "picker.chapterCount": "%1 chapitres tirés de ce commentaire",
+    };
+
+    /** Deutsch (German). */
+    const de = {
+        "picker.use": "Diese Setlist verwenden",
+        "picker.inUse": "Setlist in Verwendung",
+        "picker.chapterCount": "%1 Kapitel aus diesem Kommentar",
+    };
+
+    /** Português (Brazilian Portuguese). */
+    const ptBR = {
+        "picker.use": "Usar este setlist",
+        "picker.inUse": "Setlist em uso",
+        "picker.chapterCount": "%1 capítulos deste comentário",
+    };
+
+    /** Русский (Russian). */
+    const ru = {
+        "picker.use": "Использовать этот сетлист",
+        "picker.inUse": "Используемый сетлист",
+        "picker.chapterCount": "Глав из этого комментария: %1",
+    };
+
+    /**
      * Tiny i18n engine for the userscript.
      *
      * Strings live in per-locale dictionaries under `./locales`. English (`en`) is the reference: it
@@ -137,6 +220,19 @@
      */
     /** The special config value meaning "pick the locale from the browser". */
     const AUTO_LANG = "auto";
+    /** All locale dictionaries, keyed by code. `en` doubles as the fallback. */
+    const dictionaries = {
+        "en": en,
+        "zh-TW": zhTW,
+        "zh-CN": zhCN,
+        "ja": ja,
+        "ko": ko,
+        "es": es,
+        "fr": fr,
+        "de": de,
+        "pt-BR": ptBR,
+        "ru": ru,
+    };
     /**
      * Locales offered in the settings dropdown, in display order, each labelled with its own endonym so a
      * user can recognise their language regardless of the current interface language.
@@ -154,6 +250,8 @@
         { code: "ru", label: "Русский" },
     ];
     const langCodes = supportedLanguages.map(l => l.code);
+    /** Active locale, resolved by {@linkcode initI18n}. Defaults to English until then. */
+    let activeLang = "en";
     /**
      * Resolves a stored config language (`"auto"` or a specific code) to a concrete locale, matching the
      * browser's preferred languages when set to auto. Falls back to English if nothing matches.
@@ -190,6 +288,7 @@
     }
     /** Sets the active locale used by {@linkcode t} and the default of {@linkcode applyI18n}. */
     function setActiveLanguage(lang) {
+        activeLang = lang;
     }
     /**
      * Resolves the active locale from the given stored config value and applies it. Call once after the
@@ -197,6 +296,25 @@
      */
     function initI18n(configuredLanguage) {
         setActiveLanguage(resolveLanguage(configuredLanguage));
+    }
+    /** Replaces `%1`, `%2`, … placeholders with the positional args (1-indexed). */
+    function interpolate(raw, args) {
+        if (args.length === 0)
+            return raw;
+        return raw.replace(/%(\d+)/g, (match, n) => {
+            const val = args[Number(n) - 1];
+            return val === undefined ? match : String(val);
+        });
+    }
+    /** Translates `key` in an explicit `lang`, falling back to English then the key itself. */
+    function translate(lang, key, ...args) {
+        var _a, _b, _c;
+        const raw = (_c = (_b = (_a = dictionaries[lang]) === null || _a === void 0 ? void 0 : _a[key]) !== null && _b !== void 0 ? _b : en[key]) !== null && _c !== void 0 ? _c : key;
+        return interpolate(raw, args);
+    }
+    /** Translates `key` in the active locale. */
+    function t(key, ...args) {
+        return translate(activeLang, key, ...args);
     }
 
     let canCompress;
@@ -310,9 +428,71 @@
         }
     }
 
+    /**
+     * Remembers which comment the user picked as the setlist, per video.
+     *
+     * Only a deliberate pick is written here — the comment the script chose on its own is never
+     * recorded. A stored entry therefore always means "the automatic answer was wrong on this video and
+     * here is the right one", so it can be honoured without second-guessing it on the next visit.
+     */
+    /** How many videos to remember. A pair of short ids each, so 300 of them stay a few kilobytes */
+    const MAX_PICKS = 300;
+    const picksStore = new userutils.DataStore({
+        id: "setlist-picks",
+        defaultData: { picks: [] },
+        // increment this value if the data format changes:
+        formatVersion: 1,
+        migrations: {},
+    });
+    function initSetlistPicks() {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield picksStore.loadData();
+        });
+    }
+    /** The comment the user picked for this video, or null if they never picked one */
+    function getSetlistPick(videoId) {
+        var _a, _b;
+        return (_b = (_a = picksStore.getData().picks.find(p => p.videoId === videoId)) === null || _a === void 0 ? void 0 : _a.commentId) !== null && _b !== void 0 ? _b : null;
+    }
+    /** Records the user's pick for this video, replacing any earlier one and trimming the oldest away */
+    function saveSetlistPick(videoId, commentId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const picks = picksStore.getData().picks
+                .filter(p => p.videoId !== videoId)
+                .concat({ videoId, commentId })
+                .slice(-MAX_PICKS);
+            yield picksStore.setData({ picks });
+            log(`Remembered comment ${commentId} as the setlist for video ${videoId}`);
+        });
+    }
+
     //#region DOM utils
     let domLoaded = document.readyState === "complete" || document.readyState === "interactive";
     document.addEventListener("DOMContentLoaded", () => domLoaded = true);
+    /**
+     * Resolves with the first element matching the selector, waiting for YouTube to stamp it if it is
+     * not there yet. Rejects once {@linkcode timeoutMs} has passed without it appearing.
+     */
+    function waitForElement(selector, timeoutMs = 8000) {
+        const existing = document.querySelector(selector);
+        if (existing)
+            return Promise.resolve(existing);
+        return new Promise((resolve, reject) => {
+            const observer = new MutationObserver(() => {
+                const el = document.querySelector(selector);
+                if (el) {
+                    observer.disconnect();
+                    clearTimeout(timer);
+                    resolve(el);
+                }
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+            const timer = setTimeout(() => {
+                observer.disconnect();
+                reject(new Error(`Timed out waiting for element: ${selector}`));
+            }, timeoutMs);
+        });
+    }
     /**
      * Adds a style element to the DOM at runtime.
      * @param css The CSS stylesheet to add
@@ -32266,25 +32446,27 @@
         CustomEvent: globalThis.CustomEvent
     });
 
-    const TIMESTAMP_RE$1 = /\d{1,2}:\d{2}(?::\d{2})?/g;
-    /** Counts timestamp-like patterns (e.g. 0:00, 1:23:45) in a string */
-    function countTimestamps(text) {
-        var _a;
-        return ((_a = text.match(TIMESTAMP_RE$1)) !== null && _a !== void 0 ? _a : []).length;
-    }
-    // The fewest timestamps a comment must hold to be read as a setlist.
-    const MIN_TIMESTAMPS = 3;
-    /** Picks the comment with the highest timestamp count ({@link MIN_TIMESTAMPS} to qualify) */
-    const mostTimestampsStrategy = {
-        name: "mostTimestamps",
+    /**
+     * The fewest songs a comment must yield to be read as a setlist.
+     *
+     * Counted on parsed chapters, not timestamps in the text, so one song is one song however it was
+     * written — a range (`4:55~7:52 曲名`) spends two timestamps on one. Three is also a count no
+     * ordinary comment reaches by accident: a reply pointing at a moment or two stays under it.
+     */
+    const MIN_CHAPTERS = 3;
+    const isSetlist = (candidate) => candidate.chapters.length >= MIN_CHAPTERS;
+    /** Picks the comment that yielded the most chapters ({@link MIN_CHAPTERS} to qualify) */
+    const mostChaptersStrategy = {
+        name: "mostChapters",
+        qualifies: isSetlist,
         find(candidates) {
             if (candidates.length === 0)
                 return null;
-            const best = candidates.reduce((prev, cur) => cur.timestampCount > prev.timestampCount ? cur : prev);
-            return best.timestampCount >= MIN_TIMESTAMPS ? best : null;
+            const best = candidates.reduce((prev, cur) => cur.chapters.length > prev.chapters.length ? cur : prev);
+            return isSetlist(best) ? best : null;
         },
     };
-    const activeCommentFindStrategy = mostTimestampsStrategy;
+    const activeCommentFindStrategy = mostChaptersStrategy;
 
     /**
      * Matches a timestamp anywhere in the line: 0:00, 1:23, 1:23:45.
@@ -32455,6 +32637,17 @@
             : { timestampSec: startSec, title };
     }
     const activeChapterParseStrategy = basicLineParseStrategy;
+    /**
+     * Parses a whole comment into the chapters it holds, dropping the lines that yielded none.
+     *
+     * The single place a comment is split into lines, so the runtime and the regression suite read one
+     * the same way. `\r\n` is what 47 of the 143 test videos' comments arrive with.
+     */
+    function parseChapters(text) {
+        return activeChapterParseStrategy
+            .parseLines(text.split(/\r?\n/))
+            .filter((c) => c !== null);
+    }
 
     /**
      * The fewest official chapters a video must carry before the script stands down.
@@ -32603,11 +32796,9 @@
                     // replyLevel 0 = top-level comment; replies can't hold the setlist
                     if ((_e = p.properties) === null || _e === void 0 ? void 0 : _e.replyLevel)
                         continue;
-                    const text = (_h = (_g = (_f = p.properties) === null || _f === void 0 ? void 0 : _f.content) === null || _g === void 0 ? void 0 : _g.content) !== null && _h !== void 0 ? _h : "";
                     out.push({
-                        id: (_k = (_j = p.properties) === null || _j === void 0 ? void 0 : _j.commentId) !== null && _k !== void 0 ? _k : `${videoId}#${out.length}`,
-                        text,
-                        timestampCount: countTimestamps(text),
+                        id: (_g = (_f = p.properties) === null || _f === void 0 ? void 0 : _f.commentId) !== null && _g !== void 0 ? _g : `${videoId}#${out.length}`,
+                        text: (_k = (_j = (_h = p.properties) === null || _h === void 0 ? void 0 : _h.content) === null || _j === void 0 ? void 0 : _j.content) !== null && _k !== void 0 ? _k : "",
                     });
                 }
                 token = findNextPageToken(page);
@@ -32615,15 +32806,39 @@
             return out;
         });
     }
+    const noSetlists = { candidates: [], selected: null };
     /**
-     * Fetches the top-level comments for the given video, selects the best
-     * setlist candidate using {@link activeCommentFindStrategy}, then parses it
-     * into chapters using {@link activeChapterParseStrategy}.
+     * Decides which setlist to draw.
      *
-     * Returns null if the creator already chaptered the video, if no qualifying
-     * comment is found, or if parsing yields no chapters.
+     * A pick the user made on this video wins outright — it was made in front of the alternatives, so
+     * it is a better answer than any heuristic. Otherwise {@link activeCommentFindStrategy} chooses.
      */
-    function getChaptersFromComments(videoId) {
+    function selectSetlist(candidates, videoId) {
+        const pickedId = getSetlistPick(videoId);
+        const picked = pickedId ? candidates.find(c => c.id === pickedId) : undefined;
+        if (picked) {
+            log(`Using the comment ${pickedId} remembered for this video (${picked.chapters.length} chapters)`);
+            return picked;
+        }
+        if (pickedId)
+            warn$1(`Remembered comment ${pickedId} is no longer among this video's setlists — falling back to "${activeCommentFindStrategy.name}"`);
+        const target = activeCommentFindStrategy.find(candidates);
+        if (!target) {
+            warn$1(`No qualifying comment found (strategy: "${activeCommentFindStrategy.name}"). None yielded enough chapters.`);
+            return null;
+        }
+        log(`Selected comment ${target.id} with ${target.chapters.length} chapters (strategy: "${activeCommentFindStrategy.name}")`);
+        return target;
+    }
+    /**
+     * Fetches the top-level comments for the given video and works out every setlist it offers, along
+     * with the one to draw — none at all if the creator already chaptered the video.
+     *
+     * Every comment is parsed, not just the winner, so the reader can be shown the alternatives and
+     * switch between them; what counts as a setlist is left entirely to
+     * {@link activeCommentFindStrategy}.
+     */
+    function findSetlists(videoId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 log(`Fetching comments for video: ${videoId}`);
@@ -32633,31 +32848,22 @@
                 // this script adds would only sit on top of a better-informed answer.
                 if (hasOfficialChapters(watch)) {
                     log("Video already carries official chapters — leaving the progress bar untouched");
-                    return null;
+                    return noSetlists;
                 }
-                const candidates = yield fetchComments(innertube, watch, videoId);
-                log(`Fetched ${candidates.length} top-level comment(s) across up to ${COMMENT_PAGES} page(s)`);
-                log("Candidates (id, timestampCount):", candidates.map(c => ({ id: c.id, timestampCount: c.timestampCount, preview: c.text.slice(0, 60).replace(/\n/g, "↵") })));
-                const target = activeCommentFindStrategy.find(candidates);
-                if (!target) {
-                    warn$1(`No qualifying comment found (strategy: "${activeCommentFindStrategy.name}"). None had enough timestamps.`);
-                    return null;
-                }
-                log(`Selected comment ${target.id} with ${target.timestampCount} timestamp(s) (strategy: "${activeCommentFindStrategy.name}")`);
-                log("Target comment text:\n", target.text);
-                const chapters = activeChapterParseStrategy
-                    .parseLines(target.text.split("\n"))
-                    .filter((c) => c !== null);
-                if (chapters.length <= 1) {
-                    warn$1(`Parsed only ${chapters.length} chapter(s) from target comment — need at least 2. Aborting.`);
-                    return null;
-                }
-                log(`Successfully parsed ${chapters.length} chapters:`, chapters);
-                return chapters;
+                const comments = yield fetchComments(innertube, watch, videoId);
+                log(`Fetched ${comments.length} top-level comment(s) across up to ${COMMENT_PAGES} page(s)`);
+                const parsed = comments.map(c => (Object.assign(Object.assign({}, c), { chapters: parseChapters(c.text) })));
+                log("Comments (id, chapters):", parsed.map(c => ({ id: c.id, chapters: c.chapters.length, preview: c.text.slice(0, 60).replace(/\n/g, "↵") })));
+                const candidates = parsed.filter(c => activeCommentFindStrategy.qualifies(c));
+                log(`${candidates.length} comment(s) hold a setlist:`, candidates.map(c => `${c.id} → ${c.chapters.length} chapters`));
+                const selected = selectSetlist(candidates, videoId);
+                if (selected)
+                    log(`Drawing ${selected.chapters.length} chapters from comment ${selected.id}:`, selected.chapters);
+                return { candidates, selected };
             }
             catch (err) {
                 error$1("Failed to get chapters from comments:", err);
-                return null;
+                return noSetlists;
             }
         });
     }
@@ -32767,29 +32973,8 @@
         };
         log(`Injected ${segments.length} chapter segment(s) onto the progress bar`);
     }
-    function waitForElement(selector, timeoutMs = 8000) {
-        const existing = document.querySelector(selector);
-        if (existing)
-            return Promise.resolve(existing);
-        return new Promise((resolve, reject) => {
-            const observer = new MutationObserver(() => {
-                const el = document.querySelector(selector);
-                if (el) {
-                    observer.disconnect();
-                    resolve(el);
-                }
-            });
-            observer.observe(document.body, { childList: true, subtree: true });
-            setTimeout(() => {
-                observer.disconnect();
-                reject(new Error(`Timed out waiting for element: ${selector}`));
-            }, timeoutMs);
-        });
-    }
     function applyChapterOverlay(chapters) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (chapters.length < 2)
-                return;
             log("Waiting for progress bar...");
             let progressBar;
             try {
@@ -32823,10 +33008,150 @@
         });
     }
 
+    /**
+     * Puts a text button on every comment that holds a setlist: the one in use says so, the rest offer
+     * to take its place.
+     */
+    /** The comment section as a whole — present on the watch page well before the comments load into it */
+    const COMMENTS_SEL = "ytd-comments#comments";
+    /** One rendered comment. Replies use the same element, but a reply never matches a candidate */
+    const COMMENT_SEL = "ytd-comment-view-model";
+    /** The comment's own text, without the author, the like count or the reply row around it */
+    const CONTENT_SEL = "#content-text";
+    /**
+     * Where the button goes, best first: the row that already holds Like and Reply, then the engagement
+     * bar around it, then the comment's main column. Only the first is the intended home — the rest keep
+     * the button reachable (on its own line, under the comment) if YouTube renames that row.
+     */
+    const HOST_SELECTORS = ["#toolbar", "ytd-comment-engagement-bar", "#main"];
+    const BUTTON_CLASS = "ys2c-setlist-pick";
+    const ACTIVE_CLASS = "ys2c-setlist-pick--active";
+    /** How long the comment section is given to appear before the picker gives up on the video */
+    const COMMENTS_TIMEOUT_MS = 30000;
+    /** The parser's timestamp, made global so `match` returns every one rather than the first */
+    const ALL_TIMESTAMPS_RE = new RegExp(TIMESTAMP_RE, "g");
+    /**
+     * The comment's timestamps in the order they appear, joined — how a candidate fetched from the API
+     * is paired with the element YouTube rendered for it.
+     *
+     * The two texts are never byte-identical (custom emoji become `<img>`, whitespace collapses,
+     * `#content-text` drops the shortcodes the API spells out), and the rendered element carries no id
+     * we can rely on, but a setlist's timestamps survive rendering untouched. Three or more of them in
+     * a fixed order is specific enough that no two comments on one video collide — measured across all
+     * 143 test videos, no pair of setlist comments shares a fingerprint.
+     */
+    function timestampFingerprint(text) {
+        var _a;
+        return ((_a = text.match(ALL_TIMESTAMPS_RE)) !== null && _a !== void 0 ? _a : []).join("|");
+    }
+    /** Candidates keyed by {@link timestampFingerprint}, which is how a rendered comment is matched back */
+    let candidatesByFingerprint = new Map();
+    let selectedId = null;
+    let pickHandler = null;
+    let observer = null;
+    /** Bumped by every mount and unmount, so a mount still waiting on the comment section can tell it is stale */
+    let mountId = 0;
+    /** Removes every injected button and stops watching for new comments */
+    function unmountSetlistPicker() {
+        mountId++;
+        observer === null || observer === void 0 ? void 0 : observer.disconnect();
+        observer = null;
+        candidatesByFingerprint = new Map();
+        selectedId = null;
+        pickHandler = null;
+        document.querySelectorAll(`.${BUTTON_CLASS}`).forEach(btn => btn.remove());
+    }
+    /**
+     * Starts labelling the comments that hold a setlist.
+     *
+     * Comments arrive as the reader scrolls, and YouTube re-stamps the ones already on screen, so the
+     * section is watched for the lifetime of the video rather than decorated once.
+     */
+    function mountSetlistPicker(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ candidates, selectedId: initialId, onPick }) {
+            unmountSetlistPicker();
+            if (candidates.length === 0) {
+                log("No setlist on this video — nothing to label");
+                return;
+            }
+            const id = mountId;
+            candidatesByFingerprint = new Map(candidates.map(c => [timestampFingerprint(c.text), c]));
+            selectedId = initialId;
+            pickHandler = onPick;
+            let root;
+            try {
+                root = yield waitForElement(COMMENTS_SEL, COMMENTS_TIMEOUT_MS);
+            }
+            catch (err) {
+                warn$1(err.message);
+                return;
+            }
+            // A navigation while we were waiting already tore this mount down
+            if (id !== mountId)
+                return;
+            observer = new MutationObserver(userutils.debounce(decorateComments, 200));
+            observer.observe(root, { childList: true, subtree: true });
+            decorateComments();
+            log(`Setlist picker watching the comment section for ${candidates.length} setlist(s)`);
+        });
+    }
+    /** Gives every rendered comment that holds a setlist its button, and refreshes the labels */
+    function decorateComments() {
+        var _a, _b, _c;
+        for (const comment of document.querySelectorAll(COMMENT_SEL)) {
+            const text = (_b = (_a = comment.querySelector(CONTENT_SEL)) === null || _a === void 0 ? void 0 : _a.textContent) !== null && _b !== void 0 ? _b : "";
+            const candidate = candidatesByFingerprint.get(timestampFingerprint(text));
+            if (!candidate)
+                continue;
+            const button = (_c = comment.querySelector(`.${BUTTON_CLASS}`)) !== null && _c !== void 0 ? _c : insertButton(comment, candidate);
+            if (button)
+                labelButton(button, candidate);
+        }
+    }
+    function insertButton(comment, candidate) {
+        const host = HOST_SELECTORS.reduce((found, sel) => found !== null && found !== void 0 ? found : comment.querySelector(sel), null);
+        if (!host) {
+            warn$1("Found a setlist comment but nowhere to put its button");
+            return null;
+        }
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = BUTTON_CLASS;
+        // The comment body has click handlers of its own (expanding a collapsed comment, among others),
+        // and picking a setlist should not also unfold the comment it was picked from
+        button.addEventListener("click", (evt) => {
+            evt.stopPropagation();
+            pick(candidate);
+        });
+        host.appendChild(button);
+        return button;
+    }
+    /** Applies the reader's pick: the buttons re-label first, then the caller redraws the progress bar */
+    function pick(candidate) {
+        if (candidate.id === selectedId)
+            return;
+        selectedId = candidate.id;
+        decorateComments();
+        pickHandler === null || pickHandler === void 0 ? void 0 : pickHandler(candidate);
+    }
+    /** The one in use says so and is inert; the rest offer to take its place */
+    function labelButton(button, candidate) {
+        const active = candidate.id === selectedId;
+        button.classList.toggle(ACTIVE_CLASS, active);
+        button.disabled = active;
+        button.title = t("picker.chapterCount", candidate.chapters.length);
+        // Only written when it actually changes: the label lives inside the observed subtree, and
+        // rewriting it unconditionally would be a mutation that schedules the next pass, forever
+        const label = t(active ? "picker.inUse" : "picker.use");
+        if (button.textContent !== label)
+            button.textContent = label;
+    }
+
     /** Runs when the userscript is loaded initially */
     function init() {
         return __awaiter(this, void 0, void 0, function* () {
             yield initConfig();
+            yield initSetlistPicks();
             initI18n(config.getData().language);
             if (domLoaded)
                 run();
@@ -32892,6 +33217,39 @@
 .ys2c-chapter-tooltip--visible {
   display: block;
 }
+
+/* ── Setlist pick button ─────────────────────────────────────────────────── */
+
+/* Sits in the comment's Like / Reply row, so it borrows that row's metrics and
+   YouTube's own theme variables rather than hardcoding light- or dark-mode colours. */
+.ys2c-setlist-pick {
+  margin-left: 8px;
+  padding: 0 12px;
+  height: 32px;
+  border: none;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--yt-spec-text-secondary, #aaa);
+  font-family: "YouTube Noto", Roboto, Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 32px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ys2c-setlist-pick:hover {
+  background: var(--yt-spec-badge-chip-background, rgba(125, 125, 125, 0.2));
+  color: var(--yt-spec-text-primary, #fff);
+}
+
+/* The setlist already on the progress bar: a statement, not an offer */
+.ys2c-setlist-pick--active,
+.ys2c-setlist-pick--active:hover {
+  background: transparent;
+  color: var(--yt-spec-call-to-action, #3ea6ff);
+  cursor: default;
+}
 `, "global");
                 initObservers();
                 initSetlistChapters();
@@ -32905,18 +33263,42 @@
     function getCurrentVideoId() {
         return new URL(location.href).searchParams.get("v");
     }
+    /**
+     * Counts navigations, so work started for one video can tell it has been overtaken by the next.
+     * Fetching the comments and waiting for the comment section both outlive a quick switch between
+     * videos, and either one finishing late would otherwise chapter the wrong video.
+     */
+    let navigationId = 0;
     function initSetlistChapters() {
         const handleNavigation = () => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const id = ++navigationId;
+            removeOverlay();
+            unmountSetlistPicker();
             const videoId = getCurrentVideoId();
             if (!videoId) {
                 log("Not a watch page, skipping.");
                 return;
             }
             log(`Navigation detected → video: ${videoId}`);
-            removeOverlay();
-            const chapters = yield getChaptersFromComments(videoId);
-            if (chapters)
-                yield applyChapterOverlay(chapters);
+            const { candidates, selected } = yield findSetlists(videoId);
+            if (id !== navigationId)
+                return;
+            if (selected)
+                yield applyChapterOverlay(selected.chapters);
+            if (id !== navigationId)
+                return;
+            yield mountSetlistPicker({
+                candidates,
+                selectedId: (_a = selected === null || selected === void 0 ? void 0 : selected.id) !== null && _a !== void 0 ? _a : null,
+                onPick: (candidate) => __awaiter(this, void 0, void 0, function* () {
+                    if (id !== navigationId)
+                        return;
+                    yield saveSetlistPick(videoId, candidate.id);
+                    removeOverlay();
+                    yield applyChapterOverlay(candidate.chapters);
+                }),
+            });
         });
         log("Attaching yt-navigate-finish listener");
         // handle the page that's already loaded when the script runs

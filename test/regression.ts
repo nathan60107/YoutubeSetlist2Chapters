@@ -20,9 +20,9 @@
 import { readFileSync, writeFileSync, readdirSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { activeChapterParseStrategy } from "../src/chapterParser.js";
-import { activeCommentFindStrategy, countTimestamps } from "../src/commentFinder.js";
-import type { Chapter, CommentCandidate } from "../src/types.js";
+import { parseChapters } from "../src/chapterParser.js";
+import { activeCommentFindStrategy } from "../src/commentFinder.js";
+import type { SetlistCandidate } from "../src/types.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(HERE, "data");
@@ -108,10 +108,10 @@ for (const file of files) {
   if (!expected?.comment) continue; // 這部影片本來就沒有 setlist 留言
   metrics.withSetlist++;
 
-  const candidates: CommentCandidate[] = fx.comments.map((c, i) => ({
+  const candidates: SetlistCandidate[] = fx.comments.map((c, i) => ({
     id: `${fx.id}#${i}`,
     text: c.text,
-    timestampCount: countTimestamps(c.text),
+    chapters: parseChapters(c.text),
   }));
 
   const picked = activeCommentFindStrategy.find(candidates);
@@ -119,9 +119,7 @@ for (const file of files) {
   if (pickedRight) metrics.commentPicked++;
 
   const source = picked?.text ?? "";
-  const chapters = activeChapterParseStrategy
-    .parseLines(source.split(/\r?\n/))
-    .filter((c): c is Chapter => c !== null);
+  const chapters = picked?.chapters ?? [];
 
   metrics.chapters += chapters.length;
   metrics.untitled += chapters.filter((c) => UNTITLED_RE.test(c.title)).length;

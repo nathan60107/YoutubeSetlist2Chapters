@@ -28,11 +28,20 @@ export type Chapter = {
   title: string;
 };
 
-/** A comment evaluated as a potential setlist source */
+/** A top-level comment, as fetched — before anything has been read out of it */
 export type CommentCandidate = {
   id: string;
   text: string;
-  timestampCount: number;
+};
+
+/**
+ * A comment together with what it parsed into. The chapters are the only measure of it taken
+ * anywhere — whether it is a setlist, which of several is best, and what to draw all read off this
+ * one list, so nothing can disagree with what the progress bar shows.
+ */
+export type SetlistCandidate = CommentCandidate & {
+  /** Lines that yielded both a time and a title; the ones that yielded neither are already gone */
+  chapters: Chapter[];
 };
 
 /**

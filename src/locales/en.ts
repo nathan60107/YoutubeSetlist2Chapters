@@ -10,6 +10,12 @@
  * placeholders replaced by {@linkcode t} arguments.
  */
 export const en = {
+  /** Button on a comment whose setlist is not the one being drawn */
+  "picker.use": "Use this setlist",
+  /** Same button on the comment whose setlist is currently on the progress bar */
+  "picker.inUse": "Setlist in use",
+  /** Tooltip on both, %1 being how many chapters that comment yields */
+  "picker.chapterCount": "%1 chapters from this comment",
 } as const;
 
 /** Every translation key. Each non-reference locale must provide a value for all of these. */

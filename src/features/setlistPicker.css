@@ -1,0 +1,32 @@
+/* ── Setlist pick button ─────────────────────────────────────────────────── */
+
+/* Sits in the comment's Like / Reply row, so it borrows that row's metrics and
+   YouTube's own theme variables rather than hardcoding light- or dark-mode colours. */
+.ys2c-setlist-pick {
+  margin-left: 8px;
+  padding: 0 12px;
+  height: 32px;
+  border: none;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--yt-spec-text-secondary, #aaa);
+  font-family: "YouTube Noto", Roboto, Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 32px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ys2c-setlist-pick:hover {
+  background: var(--yt-spec-badge-chip-background, rgba(125, 125, 125, 0.2));
+  color: var(--yt-spec-text-primary, #fff);
+}
+
+/* The setlist already on the progress bar: a statement, not an offer */
+.ys2c-setlist-pick--active,
+.ys2c-setlist-pick--active:hover {
+  background: transparent;
+  color: var(--yt-spec-call-to-action, #3ea6ff);
+  cursor: default;
+}

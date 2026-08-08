@@ -92,6 +92,33 @@ function clearNode(element: Element) {
 }
 
 /**
+ * Resolves with the first element matching the selector, waiting for YouTube to stamp it if it is
+ * not there yet. Rejects once {@linkcode timeoutMs} has passed without it appearing.
+ */
+export function waitForElement<T extends Element>(selector: string, timeoutMs = 8_000): Promise<T> {
+  const existing = document.querySelector<T>(selector);
+  if(existing)
+    return Promise.resolve(existing);
+
+  return new Promise((resolve, reject) => {
+    const observer = new MutationObserver(() => {
+      const el = document.querySelector<T>(selector);
+      if(el) {
+        observer.disconnect();
+        clearTimeout(timer);
+        resolve(el);
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    const timer = setTimeout(() => {
+      observer.disconnect();
+      reject(new Error(`Timed out waiting for element: ${selector}`));
+    }, timeoutMs);
+  });
+}
+
+/**
  * Adds a style element to the DOM at runtime.
  * @param css The CSS stylesheet to add
  * @param ref A reference string to identify the style element - defaults to a random 5-character string
